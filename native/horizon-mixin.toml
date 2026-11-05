@@ -1,4 +1,4 @@
-# Horizon Backpacks: the code half. The items, recipes and creative tab are the content mod in
+# Backpacks: the code half. The items, recipes and creative tab are the content mod in
 # ../content. Mixin code, not a trait mod: the cursor stack and the inventory screen's slots are
 # `Game`'s, which only code inside the game reaches. Build with
 # `horizon-launcher native-build <this folder> --trust-native-code`.

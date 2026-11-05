@@ -5,6 +5,9 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 
 ## Unreleased
 
+### Changed
+- The mod is now called Backpacks (its ids are unchanged, so worlds keep their backpacks).
+
 ### Added
 - The backpack's slots also show on the crafting table's, chests' and other containers' screens,
   not only the player's own inventory.

@@ -1,4 +1,4 @@
-"""Writes the Horizon Backpacks content mod (data, assets and original textures) into argv[1]."""
+"""Writes the Backpacks content mod (data, assets and original textures) into argv[1]."""
 import json
 import os
 import random
@@ -93,7 +93,7 @@ for i, (name, (_, colour, _)) in enumerate(TIERS.items()):
 
 # ---- manifest -------------------------------------------------------------------------------
 write("horizon-mod.toml", f'''id = "{ID}"
-name = "Horizon Backpacks"
+name = "Backpacks"
 version = "{VERSION}"
 description = "Backpacks worn in the chest slot that add rows to the inventory. Content half; the code is horizon_backpacks_core."
 authors = []

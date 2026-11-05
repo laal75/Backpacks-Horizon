@@ -1,4 +1,4 @@
-# Horizon Backpacks
+# Backpacks
 
 Backpacks for [Horizon](https://github.com/horizon-rust/horizon) that add rows to your own
 inventory. Wear one in the chest slot and its rows appear beside your inventory whenever you open
@@ -29,7 +29,7 @@ with it. Its tooltip says how many slots are used.
   chest's or a mod's.
 - The sort button on the backpack's panel sorts the backpack on its own; Horizon's own sort buttons
   sort the rest. With Horizon's "Sort" extra on, this mod also adds them where Horizon doesn't: the
-  main inventory on mod machines' screens, and the chest on Horizon Chests' chests.
+  main inventory on mod machines' screens, and the chest on Expanded Chests' chests.
 - The rows hide while the recipe book is open; close the book to use them.
 
 ## Limits

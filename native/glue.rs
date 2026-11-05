@@ -1,4 +1,4 @@
-// Horizon Backpacks, inside the game (crate::game::horizon_backpacks): a backpack worn in the
+// Backpacks, inside the game (crate::game::horizon_backpacks): a backpack worn in the
 // chest slot adds rows of slots to the player's own inventory screen, beside it on the left, and
 // to the content mod's "Backpacks" creative tab, in place of its grid. The rows are the backpack
 // item's own: its custom data keeps them (`backpack_items`), so they go wherever it goes.
@@ -166,7 +166,7 @@ enum Sorts {
     Backpack,
 }
 
-/// The open screen is a Horizon Chests chest's.
+/// The open screen is a Expanded Chests chest's.
 fn chest_screen(game: &Game<'_>) -> bool {
     let entity = game.container.and_then(|k| game.world.block_entities.get(&k));
     matches!(entity, Some(BlockEntity::Mod(m)) if m.id.starts_with("horizon_chests:") && m.id.ends_with("_chest"))
@@ -174,7 +174,7 @@ fn chest_screen(game: &Game<'_>) -> bool {
 
 /// The sort buttons this mod adds, by their top left corner, with the sort extra on: the
 /// backpack panel's own, and on a mod's screen (where Horizon's own sort buttons don't go) the
-/// main inventory's, by its label as Horizon places it, and a Horizon Chests chest's, by its
+/// main inventory's, by its label as Horizon places it, and a Expanded Chests chest's, by its
 /// title.
 fn sort_buttons(game: &Game<'_>, batch: &HudBatch) -> Vec<((f32, f32), Sorts)> {
     let mut buttons = Vec::new();
@@ -285,7 +285,7 @@ pub(super) fn mouse(game: &mut Game<'_>, button: i32, pressed: bool, canceled: &
 
 fn send(game: &mut Game<'_>, action: u8, slot: usize) {
     if let Err(e) = Host::net_send_to_server(game, CHANNEL, &[action, slot as u8]) {
-        log::warn!("Horizon Backpacks: {e}");
+        log::warn!("Backpacks: {e}");
     }
 }
 
