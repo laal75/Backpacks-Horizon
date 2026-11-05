@@ -7,6 +7,7 @@
 // client draws the rows from its copy of the worn backpack (draw.rs) and turns a click on them
 // into a mod message (click.rs); the server, single player's integrated one included, applies it
 // to the player's inventory, cursor and backpack and sends the inventory back (net.rs).
+use horizon_client::containers::BlockEntity;
 use horizon_client::creative::Creative;
 use horizon_client::hud::{HudBatch, rgba};
 use horizon_client::items::ItemStack;
@@ -81,6 +82,10 @@ const PICK_RIGHT: u8 = 1;
 const SHIFT_OUT: u8 = 2;
 /// An inventory slot (0..36, the hotbar first) to the backpack.
 const SHIFT_IN: u8 = 3;
+/// The backpack's own slots sorted, as Horizon's sort orders a chest.
+const SORT: u8 = 4;
+/// Horizon's sort button: a square this size.
+const SORT_BUTTON: f32 = 9.0;
 
 /// Where the worn backpack's slots are on the open screen.
 struct Layout {
@@ -121,14 +126,19 @@ fn own_inventory(game: &Game<'_>) -> bool {
         && game.craft_size == 2
 }
 
-/// The worn backpack's rows, on a screen that shows them: none on a server without this mod
-/// (it couldn't apply the clicks).
+/// This mod's half on the server answers its messages: not a server without it.
+fn served(game: &Game<'_>) -> bool {
+    game.native_on(MOD) && game.remote.as_ref().is_none_or(|r| r.mod_net)
+}
+
+/// The worn backpack's rows, on a screen that shows them: every screen with the player's
+/// inventory in it (their own, a crafting table's, a chest's, a mod's) and the creative tab.
 fn layout(game: &Game<'_>, batch: &HudBatch) -> Option<Layout> {
-    if !game.native_on(MOD) || game.remote.as_ref().is_some_and(|r| !r.mod_net) {
+    if !served(game) {
         return None;
     }
     let slots = slots_of(&game.armor[CHEST].as_ref()?.item)?;
-    if own_inventory(game) {
+    if game.screen == Screen::Inventory {
         // Hidden while the recipe book is open: it takes the same side.
         if game.recipe_book_shift(batch.width) > 0.0 {
             return None;
@@ -149,6 +159,72 @@ fn layout(game: &Game<'_>, batch: &HudBatch) -> Option<Layout> {
     None
 }
 
+/// What a sort button sorts: game slots (with clicks, as Horizon's sort does) or the worn
+/// backpack (on the server).
+enum Sorts {
+    Slots(Vec<usize>),
+    Backpack,
+}
+
+/// The open screen is a Horizon Chests chest's.
+fn chest_screen(game: &Game<'_>) -> bool {
+    let entity = game.container.and_then(|k| game.world.block_entities.get(&k));
+    matches!(entity, Some(BlockEntity::Mod(m)) if m.id.starts_with("horizon_chests:") && m.id.ends_with("_chest"))
+}
+
+/// The sort buttons this mod adds, by their top left corner, with the sort extra on: the
+/// backpack panel's own, and on a mod's screen (where Horizon's own sort buttons don't go) the
+/// main inventory's, by its label as Horizon places it, and a Horizon Chests chest's, by its
+/// title.
+fn sort_buttons(game: &Game<'_>, batch: &HudBatch) -> Vec<((f32, f32), Sorts)> {
+    let mut buttons = Vec::new();
+    if !game.settings.extras.sort || game.screen != Screen::Inventory {
+        return buttons;
+    }
+    if let Some(Layout { panel: Some([px, py, w, _]), .. }) = layout(game, batch) {
+        buttons.push(((px + w - SORT_BUTTON - 7.0, py + 5.0), Sorts::Backpack));
+    }
+    if let (Some(container), Some(ix), Some(iy)) = (
+        game.native_screen_slots(),
+        game.native_screen_inventory_x(),
+        game.native_screen_inventory_y(),
+    ) {
+        let (ox, oy) = game.inventory_origin(batch);
+        let width = game.native_screen_width().unwrap_or(176.0);
+        if chest_screen(game) {
+            buttons.push(((ox + width - SORT_BUTTON - 7.0, oy + 5.0), Sorts::Slots(container)));
+        }
+        let main: Vec<usize> = (9..36).collect();
+        buttons.push(((ox + ix + 9.0 * 18.0 - SORT_BUTTON - 1.0, oy + iy - 13.0), Sorts::Slots(main)));
+    }
+    buttons
+}
+
+fn on_button(at: (f32, f32), x: f32, y: f32) -> bool {
+    x >= at.0 && x < at.0 + SORT_BUTTON && y >= at.1 && y < at.1 + SORT_BUTTON
+}
+
+/// Sorts game slots as Horizon's sort extra does: the clicks `inv_sort` plans, each an ordinary
+/// left click (needs an empty hand), in the creative screen's order, then by name.
+fn sort_slots(game: &mut Game<'_>, slots: &[usize]) {
+    if game.carried.is_some() {
+        return;
+    }
+    let views: Vec<Option<ItemStack>> = slots.iter().map(|&s| game.slot_view(s)).collect();
+    let clicks = {
+        let names = |id: &str| game.pack.names.display_item(id);
+        let rank = |s: &ItemStack| {
+            let order = game.creative_screen.order_of(s).unwrap_or(usize::MAX);
+            (order, horizon_client::stations::hover_name(&names, s))
+        };
+        let max = |s: &ItemStack| game.max_stack(s);
+        horizon_client::inv_sort::plan(&views, &rank, &max)
+    };
+    for i in clicks {
+        game.tweak_click(slots[i], 0, horizon_client::menu::Input::Pickup);
+    }
+}
+
 fn batch(game: &Game<'_>) -> Option<HudBatch> {
     let r = game.renderer.as_ref()?;
     Some(HudBatch::new([r.config.width, r.config.height]))
@@ -160,10 +236,24 @@ pub(super) fn mouse(game: &mut Game<'_>, button: i32, pressed: bool, canceled: &
     let Some(batch) = batch(game) else {
         return;
     };
+    if !game.native_on(MOD) {
+        return;
+    }
+    let (x, y) = game.cursor;
+    let hit = sort_buttons(game, &batch).into_iter().find(|(at, _)| on_button(*at, x, y));
+    if let Some((_, sorts)) = hit {
+        *canceled = true;
+        if pressed && button == 0 {
+            match sorts {
+                Sorts::Slots(slots) => sort_slots(game, &slots),
+                Sorts::Backpack => send(game, SORT, 0),
+            }
+        }
+        return;
+    }
     let Some(layout) = layout(game, &batch) else {
         return;
     };
-    let (x, y) = game.cursor;
     if !layout.covers(x, y) {
         let shift_in = pressed && button == 0 && game.has_shift_down() && game.carried.is_none();
         if shift_in
@@ -202,6 +292,29 @@ fn send(game: &mut Game<'_>, action: u8, slot: usize) {
 /// The screen hook (draw.rs): the panel, its slots and items, the hovered slot's highlight, and
 /// the cursor stack again over the panel (the game drew it before the panel).
 pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch) {
+    if !game.native_on(MOD) {
+        return;
+    }
+    draw_rows(game, batch);
+    draw_sort_buttons(game, batch);
+}
+
+/// The sort buttons, as Horizon draws its own: a bordered square with three bars, lighter
+/// under the cursor.
+fn draw_sort_buttons(game: &Game<'_>, batch: &mut HudBatch) {
+    let atlas = &game.gui.atlas;
+    let (cx, cy) = game.cursor;
+    for ((x, y), _) in sort_buttons(game, batch) {
+        let face = if on_button((x, y), cx, cy) { rgba(220, 220, 220, 255) } else { rgba(160, 160, 160, 255) };
+        batch.fill(atlas, x, y, SORT_BUTTON, SORT_BUTTON, rgba(55, 55, 55, 255));
+        batch.fill(atlas, x + 1.0, y + 1.0, SORT_BUTTON - 2.0, SORT_BUTTON - 2.0, face);
+        for (i, w) in [5.0, 4.0, 3.0].into_iter().enumerate() {
+            batch.fill(atlas, x + 2.0, y + 2.0 + 2.0 * i as f32, w, 1.0, rgba(55, 55, 55, 255));
+        }
+    }
+}
+
+fn draw_rows(game: &Game<'_>, batch: &mut HudBatch) {
     let Some(layout) = layout(game, batch) else {
         return;
     };
@@ -266,6 +379,12 @@ pub(super) fn net(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8])
         let changed = apply(game, &mut g.inventory, &mut g.armor[CHEST], &mut g.carried, action, slot as usize);
         if changed {
             host.hub.send_inventory(gi);
+            // With a chest's or a crafting table's menu open, the inventory menu's own update
+            // doesn't set the cursor.
+            let carried = host.hub.guests[gi].carried.clone();
+            let item = host.hub.stack(&carried);
+            use horizon_protocol::packets::play::{Clientbound, SetCursorItem};
+            host.hub.guests[gi].send(&Clientbound::SetCursorItem(SetCursorItem { item }));
         }
     }
     game.lan = Some(host);
@@ -308,6 +427,7 @@ fn apply(
                 };
             }
         }
+        SORT => items = sorted(game, items, &max),
         _ => return false,
     }
     if (items.clone(), carried.clone(), inventory.to_vec()) == before {
@@ -315,6 +435,43 @@ fn apply(
     }
     store(pack, &items);
     true
+}
+
+/// The backpack's slots sorted: equal stacks merged, in the creative screen's order (the
+/// server's, so by id where it has none), then by id, the empty slots last.
+fn sorted(
+    game: &Game<'_>,
+    items: Vec<Option<ItemStack>>,
+    max: &impl Fn(&ItemStack) -> u32,
+) -> Vec<Option<ItemStack>> {
+    let n = items.len();
+    let mut merged: Vec<ItemStack> = Vec::new();
+    for stack in items.into_iter().flatten() {
+        insert_merged(&mut merged, stack, max);
+    }
+    merged.sort_by(|a, b| {
+        let key = |s: &ItemStack| (game.creative_screen.order_of(s).unwrap_or(usize::MAX), s.item.to_string());
+        key(a).cmp(&key(b)).then(b.count.cmp(&a.count))
+    });
+    let mut out: Vec<Option<ItemStack>> = merged.into_iter().map(Some).collect();
+    out.resize(n, None);
+    out
+}
+
+/// Adds `stack` to `stacks`, topping up equal ones first, each to its stack size.
+fn insert_merged(stacks: &mut Vec<ItemStack>, mut stack: ItemStack, max: &impl Fn(&ItemStack) -> u32) {
+    let limit = max(&stack);
+    for s in stacks.iter_mut() {
+        if !same_item(s, &stack) {
+            continue;
+        }
+        let moved = limit.saturating_sub(s.count).min(stack.count);
+        s.count += moved;
+        stack.count -= moved;
+    }
+    if stack.count > 0 {
+        stacks.push(stack);
+    }
 }
 
 /// A left (or `right`) click on a backpack slot with the cursor stack, as a chest's slot takes

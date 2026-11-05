@@ -25,6 +25,11 @@ with it. Its tooltip says how many slots are used.
 - Shift-click a backpack slot to send it to your inventory, and shift-click an inventory slot to
   send it to the backpack.
 - An empty backpack can go inside another backpack; one that holds anything can't.
+- The slots show on every screen with your inventory in it: your own, a crafting table's, a
+  chest's or a mod's.
+- The sort button on the backpack's panel sorts the backpack on its own; Horizon's own sort buttons
+  sort the rest. With Horizon's "Sort" extra on, this mod also adds them where Horizon doesn't: the
+  main inventory on mod machines' screens, and the chest on Horizon Chests' chests.
 - The rows hide while the recipe book is open; close the book to use them.
 
 ## Limits
