@@ -9,3 +9,5 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 - Leather, Iron, Gold, Diamond and Obsidian backpacks (1 to 5 rows), worn in the chest slot. Their
   rows show beside the inventory screen and in the creative Backpacks tab. Upgrading keeps the
   contents.
+- An empty backpack can go inside another; one holding anything can't.
+- A backpack's tooltip says how many of its slots are used.

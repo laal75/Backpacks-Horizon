@@ -60,6 +60,11 @@ fn store(stack: &mut ItemStack, items: &[Option<ItemStack>]) {
     stack.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(data)));
 }
 
+/// A backpack that holds something, which never goes in another backpack (an empty one does).
+fn full_backpack(stack: &ItemStack) -> bool {
+    rows_of(&stack.item).is_some_and(|rows| contents(stack, rows).iter().any(Option::is_some))
+}
+
 fn same_item(a: &ItemStack, b: &ItemStack) -> bool {
     a.item == b.item && a.damage == b.damage && a.extra == b.extra
 }
@@ -165,7 +170,7 @@ pub(super) fn mouse(game: &mut Game<'_>, button: i32, pressed: bool, canceled: &
             && own_inventory(game)
             && let Some(slot) = game.slot_at(&batch, x, y)
             && slot < 36
-            && game.inventory[slot].as_ref().is_some_and(|s| rows_of(&s.item).is_none())
+            && game.inventory[slot].as_ref().is_some_and(|s| !full_backpack(s))
         {
             send(game, SHIFT_IN, slot);
             *canceled = true;
@@ -242,7 +247,7 @@ pub(super) fn tooltip(stack: &ItemStack, lines: &mut Vec<(horizon_client::mod_ap
     };
     let used = contents(stack, rows).iter().flatten().count();
     let line = format!("{used} / {} slots used", rows * 9);
-    lines.push((horizon_client::mod_api::Text::literal(line), 0xAA_AAAA));
+    lines.push((horizon_client::mod_api::Text::literal(line), rgba(170, 170, 170, 255)));
 }
 
 // ---- the server: applying a click ------------------------------------------------------------
@@ -296,7 +301,7 @@ fn apply(
         }
         SHIFT_IN if slot < inventory.len() => {
             if let Some(stack) = inventory[slot].take() {
-                inventory[slot] = if rows_of(&stack.item).is_some() {
+                inventory[slot] = if full_backpack(&stack) {
                     Some(stack)
                 } else {
                     insert(&mut items, stack, &max, 0..rows * 9)
@@ -313,7 +318,8 @@ fn apply(
 }
 
 /// A left (or `right`) click on a backpack slot with the cursor stack, as a chest's slot takes
-/// it: pick up all (half), put down all (one), top up, or swap. A backpack never goes in.
+/// it: pick up all (half), put down all (one), top up, or swap. A backpack holding anything
+/// never goes in.
 fn click(
     slot: &mut Option<ItemStack>,
     carried: &mut Option<ItemStack>,
@@ -333,7 +339,7 @@ fn click(
                 *carried = Some(held);
             }
         }
-        (Some(c), held) if rows_of(&c.item).is_some() => {
+        (Some(c), held) if full_backpack(&c) => {
             *carried = Some(c);
             *slot = held;
         }

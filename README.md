@@ -22,7 +22,7 @@ with it. Its tooltip says how many slots are used.
   for half a stack or one item.
 - Shift-click a backpack slot to send it to your inventory, and shift-click an inventory slot to
   send it to the backpack.
-- A backpack never goes inside another backpack.
+- An empty backpack can go inside another backpack; one that holds anything can't.
 - The rows hide while the recipe book is open; close the book to use them.
 
 ## Limits
