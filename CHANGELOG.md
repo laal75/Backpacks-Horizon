@@ -5,6 +5,12 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 
 ## Unreleased
 
+## 0.1.2 - 2026-11-05
+
+- On mod screens the inventory's sort button is at the top right of the screen, where it no longer
+  covers a machine's upgrade slot; beside the screen's own sort button when it has one. Sort buttons
+  name what they sort when hovered. The Expanded Chests chest's own Sort button replaces this mod's.
+
 ## 0.1.1 - 2026-11-05
 
 - Hovering an item in the backpack shows its name and tooltip.

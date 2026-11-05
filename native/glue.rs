@@ -173,16 +173,30 @@ enum Sorts {
     Backpack,
 }
 
-/// The open screen is a Expanded Chests chest's.
-fn chest_screen(game: &Game<'_>) -> bool {
+/// The open screen has a sort button of its own at its top right: an Expanded Chests chest's, or
+/// a Machine Tech machine's with a buffer (its sorting.rs).
+fn has_own_sort(game: &Game<'_>) -> bool {
     let entity = game.container.and_then(|k| game.world.block_entities.get(&k));
-    matches!(entity, Some(BlockEntity::Mod(m)) if m.id.starts_with("horizon_chests:") && m.id.ends_with("_chest"))
+    matches!(entity, Some(BlockEntity::Mod(m)) if
+        (m.id.starts_with("horizon_chests:") && m.id.ends_with("_chest"))
+            || matches!(
+                m.id.as_str(),
+                "horizon_machines:quarry"
+                    | "horizon_machines:excavator"
+                    | "horizon_machines:tree_farm"
+                    | "horizon_machines:crop_harvester"
+                    | "horizon_machines:rancher"
+                    | "horizon_machines:item_collector"
+                    | "horizon_machines:block_breaker"
+                    | "horizon_machines:block_placer"
+                    | "horizon_machines:filler"
+            ))
 }
 
 /// The sort buttons this mod adds, by their top left corner, with the sort extra on: the
 /// backpack panel's own, and on a mod's screen (where Horizon's own sort buttons don't go) the
-/// main inventory's, by its label as Horizon places it, and a Expanded Chests chest's, by its
-/// title.
+/// main inventory's, at the screen's top right, clear of its slots; just left of the screen's own
+/// sort button when it has one.
 fn sort_buttons(game: &Game<'_>, batch: &HudBatch) -> Vec<((f32, f32), Sorts)> {
     let mut buttons = Vec::new();
     if !game.settings.extras.sort || game.screen != Screen::Inventory {
@@ -191,18 +205,12 @@ fn sort_buttons(game: &Game<'_>, batch: &HudBatch) -> Vec<((f32, f32), Sorts)> {
     if let Some(Layout { panel: Some([px, py, w, _]), .. }) = layout(game, batch) {
         buttons.push(((px + w - SORT_BUTTON - 7.0, py + 5.0), Sorts::Backpack));
     }
-    if let (Some(container), Some(ix), Some(iy)) = (
-        game.native_screen_slots(),
-        game.native_screen_inventory_x(),
-        game.native_screen_inventory_y(),
-    ) {
+    if game.native_screen_slots().is_some() {
         let (ox, oy) = game.inventory_origin(batch);
         let width = game.native_screen_width().unwrap_or(176.0);
-        if chest_screen(game) {
-            buttons.push(((ox + width - SORT_BUTTON - 7.0, oy + 5.0), Sorts::Slots(container)));
-        }
+        let from_right = if has_own_sort(game) { 29.0 } else { SORT_BUTTON + 7.0 };
         let main: Vec<usize> = (9..36).collect();
-        buttons.push(((ox + ix + 9.0 * 18.0 - SORT_BUTTON - 1.0, oy + iy - 13.0), Sorts::Slots(main)));
+        buttons.push(((ox + width - from_right, oy + 5.0), Sorts::Slots(main)));
     }
     buttons
 }
@@ -325,13 +333,23 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch) {
 fn draw_sort_buttons(game: &Game<'_>, batch: &mut HudBatch) {
     let atlas = &game.gui.atlas;
     let (cx, cy) = game.cursor;
-    for ((x, y), _) in sort_buttons(game, batch) {
+    let mut hovered = None;
+    for ((x, y), sorts) in sort_buttons(game, batch) {
+        if on_button((x, y), cx, cy) {
+            hovered = Some(match sorts {
+                Sorts::Slots(_) => "Sort inventory",
+                Sorts::Backpack => "Sort backpack",
+            });
+        }
         let face = if on_button((x, y), cx, cy) { rgba(220, 220, 220, 255) } else { rgba(160, 160, 160, 255) };
         batch.fill(atlas, x, y, SORT_BUTTON, SORT_BUTTON, rgba(55, 55, 55, 255));
         batch.fill(atlas, x + 1.0, y + 1.0, SORT_BUTTON - 2.0, SORT_BUTTON - 2.0, face);
         for (i, w) in [5.0, 4.0, 3.0].into_iter().enumerate() {
             batch.fill(atlas, x + 2.0, y + 2.0 + 2.0 * i as f32, w, 1.0, rgba(55, 55, 55, 255));
         }
+    }
+    if let Some(label) = hovered {
+        game.tooltip(batch, label, cx, cy);
     }
 }
 

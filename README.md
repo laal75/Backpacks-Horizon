@@ -46,8 +46,8 @@ The ready-made packs are in the [`dist`](dist) folder, so there is nothing to cl
 
 | File | What it is | Where it goes in the game folder |
 |---|---|---|
-| [`horizon_backpacks-0.1.1.hmod`](dist/horizon_backpacks-0.1.1.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
-| [`horizon_backpacks_core-0.1.1.hnmod`](dist/horizon_backpacks_core-0.1.1.hnmod) | The code | `horizon-native-mods/` |
+| [`horizon_backpacks-0.1.2.hmod`](dist/horizon_backpacks-0.1.2.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
+| [`horizon_backpacks_core-0.1.2.hnmod`](dist/horizon_backpacks_core-0.1.2.hnmod) | The code | `horizon-native-mods/` |
 
 1. Download both files. The game folder of the main Horizon instance is `%APPDATA%\horizon` on
    Windows; `horizon-launcher instance list` shows your instances.
