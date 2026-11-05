@@ -1,0 +1,11 @@
+{
+  "title": "Backpacks",
+  "icon": "horizon_backpacks:leather_backpack",
+  "items": [
+    "horizon_backpacks:leather_backpack",
+    "horizon_backpacks:iron_backpack",
+    "horizon_backpacks:gold_backpack",
+    "horizon_backpacks:diamond_backpack",
+    "horizon_backpacks:obsidian_backpack"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_transmute",
+  "category": "equipment",
+  "input": "horizon_backpacks:leather_backpack",
+  "material": "minecraft:iron_block",
+  "result": {
+    "id": "horizon_backpacks:iron_backpack"
+  }
+}

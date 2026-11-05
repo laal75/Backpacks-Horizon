@@ -1,0 +1,68 @@
+# Horizon Backpacks: the code half. The items, recipes and creative tab are the content mod in
+# ../content. Mixin code, not a trait mod: the cursor stack and the inventory screen's slots are
+# `Game`'s, which only code inside the game reaches. Build with
+# `horizon-launcher native-build <this folder> --trust-native-code`.
+[mod]
+id = "horizon_backpacks_core"
+version = "0.1.0"
+
+# The same Horizon as the other mods, so they build into one game.
+[compatibility]
+horizon_revision = "67dad0d1a5adca139b426c8114e74a33b376ba64"
+
+# The backpack's rows and clicks, a module of the game (crate::game::horizon_backpacks).
+[[module]]
+file = "crates/horizon-client/src/game.rs"
+id = "glue"
+name = "horizon_backpacks"
+source = "glue.rs"
+
+# Clicks over the rows, and shift-clicks into the backpack, before the screen sees them.
+[[injection]]
+id = "click"
+hook = "mouse_button_pre"
+hook_version = 1
+kind = "HEAD"
+helper = "click.rs"
+bindings = [
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+    { name = "button", ty = "i32", value = "button" },
+    { name = "pressed", ty = "bool", value = "pressed" },
+    { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "draw"
+hook = "screen_render_post"
+hook_version = 1
+kind = "HEAD"
+helper = "draw.rs"
+bindings = [
+    { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+    { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "tooltip"
+hook = "tooltip"
+hook_version = 1
+kind = "HEAD"
+helper = "tooltip.rs"
+bindings = [
+    { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+    { name = "lines", ty = "&mut Vec<(horizon_client::text::Text, u32)>", value = "&mut *lines" },
+]
+
+# On the server: a click on the rows, applied to the player's inventory, cursor and backpack.
+[[injection]]
+id = "net"
+hook = "net_from_client"
+hook_version = 1
+kind = "HEAD"
+helper = "net.rs"
+bindings = [
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+    { name = "player", ty = "u128", value = "player" },
+    { name = "channel", ty = "&str", value = "channel" },
+    { name = "data", ty = "&[u8]", value = "data" },
+]

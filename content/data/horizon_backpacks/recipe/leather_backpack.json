@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "LSL",
+    "LCL",
+    "LLL"
+  ],
+  "key": {
+    "L": "minecraft:leather",
+    "S": "minecraft:string",
+    "C": "minecraft:chest"
+  },
+  "result": {
+    "id": "horizon_backpacks:leather_backpack"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_transmute",
+  "category": "equipment",
+  "input": "horizon_backpacks:gold_backpack",
+  "material": "minecraft:diamond_block",
+  "result": {
+    "id": "horizon_backpacks:diamond_backpack"
+  }
+}
