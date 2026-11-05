@@ -1,6 +1,6 @@
 id = "horizon_backpacks"
 name = "Backpacks"
-version = "0.1.0"
+version = "0.1.1"
 description = "Backpacks worn in the chest slot that add rows to the inventory. Content half; the code is horizon_backpacks_core."
 authors = []
 api = "0.2"

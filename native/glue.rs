@@ -37,6 +37,9 @@ const TIERS: [(&str, &str, usize); 5] = [
 ];
 /// Slots to a row on the inventory screen.
 const COLUMNS: usize = 5;
+/// How far a trader's screen reaches left of the inventory's origin: it is 276 wide, not 176
+/// (the game's `trading::SHIFT`).
+const TRADER_SHIFT: f32 = 50.0;
 
 fn slots_of(item: &str) -> Option<usize> {
     TIERS.iter().find(|(id, ..)| *id == item).map(|&(.., slots)| slots)
@@ -149,7 +152,9 @@ fn layout(game: &Game<'_>, batch: &HudBatch) -> Option<Layout> {
         let (ox, oy) = game.inventory_origin(batch);
         let rows = slots.div_ceil(COLUMNS);
         let (w, h) = (COLUMNS as f32 * 18.0 + 14.0, 24.0 + rows as f32 * 18.0);
-        let panel = [ox - w - 4.0, oy, w, h];
+        let trader = game.station.as_ref().is_some_and(|s| s.merchant.is_some());
+        let left = if trader { ox - TRADER_SHIFT } else { ox };
+        let panel = [(left - w - 4.0).max(2.0), oy, w, h];
         let first = (panel[0] + 8.0, oy + 18.0);
         return Some(Layout { slots, cols: COLUMNS, first, panel: Some(panel) });
     }
@@ -366,6 +371,12 @@ fn draw_rows(game: &Game<'_>, batch: &mut HudBatch) {
         && let Some(carried) = &game.carried
     {
         game.draw_item(batch, carried, cx - 8.0, cy - 8.0);
+    }
+    // The hovered item's tooltip, as any slot's: not with something in the hand.
+    if game.carried.is_none()
+        && let Some(stack) = layout.slot_at(cx, cy).and_then(|i| items.get(i)).and_then(Option::as_ref)
+    {
+        game.draw_tooltip_lines(batch, &game.stack_tooltip(stack), cx, cy);
     }
 }
 

@@ -5,6 +5,10 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 
 ## Unreleased
 
+## 0.1.1 - 2026-11-05
+
+- Hovering an item in the backpack shows its name and tooltip.
+- On a trader's screen the backpack sits beside the screen, not over its trades.
 - Shift-clicks go round as in vanilla: backpack → hotbar first, hotbar → main rows (the game's own),
   main rows → backpack (to the hotbar instead when the backpack has no room).
 
