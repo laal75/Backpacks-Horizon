@@ -25,17 +25,20 @@ const KEY: &str = "backpack_items";
 /// The armour slot a backpack is worn in: the chest (0 is the head).
 const CHEST: usize = 1;
 
-/// Each backpack, its title and its rows of 9 (tools/gen_content.py has the same).
+/// Each backpack, its title and its slots, rows of 5 on the inventory screen
+/// (tools/gen_content.py has the same). 45 at most: the creative tab's 9 by 5 grid.
 const TIERS: [(&str, &str, usize); 5] = [
-    ("horizon_backpacks:leather_backpack", "Leather Backpack", 1),
-    ("horizon_backpacks:iron_backpack", "Iron Backpack", 2),
-    ("horizon_backpacks:gold_backpack", "Gold Backpack", 3),
-    ("horizon_backpacks:diamond_backpack", "Diamond Backpack", 4),
-    ("horizon_backpacks:obsidian_backpack", "Obsidian Backpack", 5),
+    ("horizon_backpacks:leather_backpack", "Leather Backpack", 10),
+    ("horizon_backpacks:iron_backpack", "Iron Backpack", 20),
+    ("horizon_backpacks:gold_backpack", "Gold Backpack", 30),
+    ("horizon_backpacks:diamond_backpack", "Diamond Backpack", 40),
+    ("horizon_backpacks:obsidian_backpack", "Obsidian Backpack", 45),
 ];
+/// Slots to a row on the inventory screen.
+const COLUMNS: usize = 5;
 
-fn rows_of(item: &str) -> Option<usize> {
-    TIERS.iter().find(|(id, ..)| *id == item).map(|&(.., rows)| rows)
+fn slots_of(item: &str) -> Option<usize> {
+    TIERS.iter().find(|(id, ..)| *id == item).map(|&(.., slots)| slots)
 }
 
 fn title_of(item: &str) -> &'static str {
@@ -43,12 +46,12 @@ fn title_of(item: &str) -> &'static str {
 }
 
 /// What a backpack item holds, slot by slot.
-fn contents(stack: &ItemStack, rows: usize) -> Vec<Option<ItemStack>> {
+fn contents(stack: &ItemStack, slots: usize) -> Vec<Option<ItemStack>> {
     let tag = stack
         .data()
         .and_then(|d| d.other("minecraft:custom_data"))
         .and_then(|data| data.get(KEY));
-    horizon_client::save::decode_items(tag, rows * 9)
+    horizon_client::save::decode_items(tag, slots)
 }
 
 fn store(stack: &mut ItemStack, items: &[Option<ItemStack>]) {
@@ -62,7 +65,7 @@ fn store(stack: &mut ItemStack, items: &[Option<ItemStack>]) {
 
 /// A backpack that holds something, which never goes in another backpack (an empty one does).
 fn full_backpack(stack: &ItemStack) -> bool {
-    rows_of(&stack.item).is_some_and(|rows| contents(stack, rows).iter().any(Option::is_some))
+    slots_of(&stack.item).is_some_and(|slots| contents(stack, slots).iter().any(Option::is_some))
 }
 
 fn same_item(a: &ItemStack, b: &ItemStack) -> bool {
@@ -81,9 +84,8 @@ const SHIFT_IN: u8 = 3;
 
 /// Where the worn backpack's slots are on the open screen.
 struct Layout {
-    rows: usize,
-    /// Slots to a row on screen: 9, or fewer where the window is too narrow for 9 beside the
-    /// inventory. The slots keep their order; only how they wrap changes.
+    slots: usize,
+    /// Slots to a row: 5 beside the inventory, 9 in the creative tab's grid.
     cols: usize,
     /// The first slot's 16 x 16 item box; the rest follow, 18 apart.
     first: (f32, f32),
@@ -97,7 +99,7 @@ impl Layout {
     }
 
     fn slot_at(&self, x: f32, y: f32) -> Option<usize> {
-        (0..self.rows * 9).find(|&i| {
+        (0..self.slots).find(|&i| {
             let (sx, sy) = self.slot(i);
             x >= sx - 1.0 && x < sx + 17.0 && y >= sy - 1.0 && y < sy + 17.0
         })
@@ -125,26 +127,24 @@ fn layout(game: &Game<'_>, batch: &HudBatch) -> Option<Layout> {
     if !game.native_on(MOD) || game.remote.as_ref().is_some_and(|r| !r.mod_net) {
         return None;
     }
-    let rows = rows_of(&game.armor[CHEST].as_ref()?.item)?;
+    let slots = slots_of(&game.armor[CHEST].as_ref()?.item)?;
     if own_inventory(game) {
         // Hidden while the recipe book is open: it takes the same side.
         if game.recipe_book_shift(batch.width) > 0.0 {
             return None;
         }
-        // On the left, as many columns as the room there takes (9 at most, 2 px from the edge).
+        // On the left, in full rows of 5: every tier's slots are a multiple of 5.
         let (ox, oy) = game.inventory_origin(batch);
-        let room = ((ox - 6.0 - 14.0) / 18.0).floor().max(1.0) as usize;
-        let cols = room.min(9);
-        let shown_rows = (rows * 9).div_ceil(cols);
-        let (w, h) = (cols as f32 * 18.0 + 14.0, 24.0 + shown_rows as f32 * 18.0);
+        let rows = slots.div_ceil(COLUMNS);
+        let (w, h) = (COLUMNS as f32 * 18.0 + 14.0, 24.0 + rows as f32 * 18.0);
         let panel = [ox - w - 4.0, oy, w, h];
         let first = (panel[0] + 8.0, oy + 18.0);
-        return Some(Layout { rows, cols, first, panel: Some(panel) });
+        return Some(Layout { slots, cols: COLUMNS, first, panel: Some(panel) });
     }
     if game.creative_tab_open() && game.creative_screen.tab().id == TAB {
         let (ox, oy) = Game::creative_origin(batch);
         let (x, y) = Creative::tab_slot_position(Creative::DISPLAY)?;
-        return Some(Layout { rows, cols: 9, first: (ox + x, oy + y), panel: None });
+        return Some(Layout { slots, cols: 9, first: (ox + x, oy + y), panel: None });
     }
     None
 }
@@ -208,14 +208,14 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch) {
     let Some(pack) = game.armor[CHEST].as_ref() else {
         return;
     };
-    let items = contents(pack, layout.rows);
+    let items = contents(pack, layout.slots);
     let atlas = &game.gui.atlas;
     if let Some([px, py, w, h]) = layout.panel {
         batch.fill(atlas, px, py, w, h, rgba(0, 0, 0, 255));
         batch.fill(atlas, px + 1.0, py + 1.0, w - 2.0, h - 2.0, rgba(198, 198, 198, 255));
         batch.text(atlas, title_of(&pack.item), px + 8.0, py + 6.0, rgba(64, 64, 64, 255), false);
     }
-    for i in 0..layout.rows * 9 {
+    for i in 0..layout.slots {
         let (x, y) = layout.slot(i);
         let (fx, fy) = (x - 1.0, y - 1.0);
         batch.fill(atlas, fx, fy, 18.0, 18.0, rgba(55, 55, 55, 255));
@@ -242,11 +242,11 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch) {
 
 /// The tooltip hook (tooltip.rs): how full a backpack is.
 pub(super) fn tooltip(stack: &ItemStack, lines: &mut Vec<(horizon_client::mod_api::Text, u32)>) {
-    let Some(rows) = rows_of(&stack.item) else {
+    let Some(slots) = slots_of(&stack.item) else {
         return;
     };
-    let used = contents(stack, rows).iter().flatten().count();
-    let line = format!("{used} / {} slots used", rows * 9);
+    let used = contents(stack, slots).iter().flatten().count();
+    let line = format!("{used} / {slots} slots used");
     lines.push((horizon_client::mod_api::Text::literal(line), rgba(170, 170, 170, 255)));
 }
 
@@ -284,11 +284,11 @@ fn apply(
     let Some(pack) = chest.as_mut() else {
         return false;
     };
-    let Some(rows) = rows_of(&pack.item) else {
+    let Some(slots) = slots_of(&pack.item) else {
         return false;
     };
     let max = |s: &ItemStack| Host::max_stack_size(game, &s.item).unwrap_or(64);
-    let mut items = contents(pack, rows);
+    let mut items = contents(pack, slots);
     let before = (items.clone(), carried.clone(), inventory.to_vec());
     match action {
         PICK | PICK_RIGHT if slot < items.len() => {
@@ -304,7 +304,7 @@ fn apply(
                 inventory[slot] = if full_backpack(&stack) {
                     Some(stack)
                 } else {
-                    insert(&mut items, stack, &max, 0..rows * 9)
+                    insert(&mut items, stack, &max, 0..slots)
                 };
             }
         }

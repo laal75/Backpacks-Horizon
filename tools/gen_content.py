@@ -42,14 +42,14 @@ def shade(c, k):
 
 
 # ---- tiers ----------------------------------------------------------------------------------
-# name: (title, colour, rows). Rows of 9; five at most, the creative screen's grid.
-# native/glue.rs has the same rows.
+# name: (title, colour, slots). Rows of 5 beside the inventory; 45 at most, the creative
+# screen's 9 by 5 grid. native/glue.rs has the same slots.
 TIERS = {
-    "leather_backpack": ("Leather Backpack", (150, 92, 52), 1),
-    "iron_backpack": ("Iron Backpack", (200, 202, 206), 2),
-    "gold_backpack": ("Gold Backpack", (240, 200, 60), 3),
-    "diamond_backpack": ("Diamond Backpack", (92, 222, 214), 4),
-    "obsidian_backpack": ("Obsidian Backpack", (60, 44, 88), 5),
+    "leather_backpack": ("Leather Backpack", (150, 92, 52), 10),
+    "iron_backpack": ("Iron Backpack", (200, 202, 206), 20),
+    "gold_backpack": ("Gold Backpack", (240, 200, 60), 30),
+    "diamond_backpack": ("Diamond Backpack", (92, 222, 214), 40),
+    "obsidian_backpack": ("Obsidian Backpack", (60, 44, 88), 45),
 }
 # Each tier past leather: the one before it and this block, by crafting_transmute, which keeps
 # what the backpack holds (its custom data).
@@ -107,7 +107,7 @@ capabilities = ["registries"]
 write(f"data/{ID}/tags/damage_type/backpack_proof.json",
       {"values": ["#minecraft:is_fire", "#minecraft:is_explosion"]})
 lang = {}
-for name, (title, _, rows) in TIERS.items():
+for name, (title, _, _) in TIERS.items():
     components = {
         "minecraft:equippable": {"slot": "chest", "equip_sound": "minecraft:item.armor.equip_leather"},
     }

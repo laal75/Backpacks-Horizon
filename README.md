@@ -5,13 +5,15 @@ inventory. Wear one in the chest slot and its rows appear beside your inventory 
 it, with whatever key you open it with. In creative, the **Backpacks** tab shows them instead of its
 items while you wear one. Everything is original: names, numbers, code and textures.
 
-| Backpack | Rows | Slots | Crafted from |
-|---|---|---|---|
-| Leather Backpack | 1 | 9 | A chest, 7 leather and a string |
-| Iron Backpack | 2 | 18 | A Leather Backpack and an iron block |
-| Gold Backpack | 3 | 27 | An Iron Backpack and a gold block |
-| Diamond Backpack | 4 | 36 | A Gold Backpack and a diamond block |
-| Obsidian Backpack | 5 | 45 | A Diamond Backpack and obsidian; fire, lava and explosions can't destroy it |
+| Backpack | Slots | Crafted from |
+|---|---|---|
+| Leather Backpack | 10 (5 x 2) | A chest, 7 leather and a string |
+| Iron Backpack | 20 (5 x 4) | A Leather Backpack and an iron block |
+| Gold Backpack | 30 (5 x 6) | An Iron Backpack and a gold block |
+| Diamond Backpack | 40 (5 x 8) | A Gold Backpack and a diamond block |
+| Obsidian Backpack | 45 (5 x 9) | A Diamond Backpack and obsidian; fire, lava and explosions can't destroy it |
+
+The slots sit in rows of 5 beside the inventory; in the creative tab they fill its 9-wide grid.
 
 What a backpack holds stays in the backpack: take it off, drop it or upgrade it, and the items go
 with it. Its tooltip says how many slots are used.
