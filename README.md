@@ -38,7 +38,39 @@ with it. Its tooltip says how many slots are used.
 - It is mixin code: it reaches into the game's inventory screen, so a new Horizon version may need
   it updated.
 
-## Build and play
+## Install
+
+### Easy install
+
+The ready-made packs are in the [`dist`](dist) folder, so there is nothing to clone:
+
+| File | What it is | Where it goes in the game folder |
+|---|---|---|
+| [`horizon_backpacks-0.1.0.hmod`](dist/horizon_backpacks-0.1.0.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
+| [`horizon_backpacks_core-0.1.0.hnmod`](dist/horizon_backpacks_core-0.1.0.hnmod) | The code | `horizon-native-mods/` |
+
+1. Download both files. The game folder of the main Horizon instance is `%APPDATA%\horizon` on
+   Windows; `horizon-launcher instance list` shows your instances.
+2. Copy each file into the folder the table names.
+3. Turn both halves on in the game folder's `horizon-mods.txt`:
+
+   ```text
+   mod.horizon_backpacks:true
+   mod.horizon_backpacks_core:true
+   ```
+
+4. Build the code into the instance. This also rebuilds your other installed native mods, so they
+   stay in the game. The first build downloads a Rust toolchain and takes 20 to 30 minutes; later
+   ones take a few minutes.
+
+   ```sh
+   horizon-launcher native-build --instance <instance id> --trust-native-code --allow-version-mismatch
+   ```
+
+   `--trust-native-code` confirms that you trust the code: native mods run with your user's rights.
+5. Play the instance: `horizon-launcher play --instance <instance id>`.
+
+### From source
 
 ```sh
 horizon-launcher native-build native --instance <instance> --trust-native-code

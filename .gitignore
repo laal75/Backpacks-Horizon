@@ -1,5 +1,4 @@
 /native/api/target/
 /native/api/Cargo.lock
 __pycache__/
-/dist/
 /past-backups/
