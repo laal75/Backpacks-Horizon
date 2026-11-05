@@ -8,7 +8,7 @@ items while you wear one. Everything is original: names, numbers, code and textu
 | Backpack | Slots | Crafted from |
 |---|---|---|
 | Leather Backpack | 10 (5 x 2) | A chest, 7 leather and a string |
-| Iron Backpack | 20 (5 x 4) | A Leather Backpack and an iron block |
+| Iron Backpack | 20 (5 x 4) | A Leather Backpack and an iron block, or a chest, 7 iron ingots and a string |
 | Gold Backpack | 30 (5 x 6) | An Iron Backpack and a gold block |
 | Diamond Backpack | 40 (5 x 8) | A Gold Backpack and a diamond block |
 | Obsidian Backpack | 45 (5 x 9) | A Diamond Backpack and obsidian; fire, lava and explosions can't destroy it |

@@ -151,6 +151,14 @@ for name, (before, material) in UPGRADES.items():
         "result": {"id": f"{ID}:{name}"},
     })
     unlock(name, f"{ID}:{before}")
+# The Iron Backpack is also made outright, as the Leather one is, with iron for leather.
+write(f"data/{ID}/recipe/iron_backpack_from_iron.json", {
+    "type": "minecraft:crafting_shaped", "category": "equipment",
+    "pattern": ["ISI", "ICI", "III"],
+    "key": {"I": "minecraft:iron_ingot", "S": "minecraft:string", "C": "minecraft:chest"},
+    "result": {"id": f"{ID}:iron_backpack"},
+})
+unlock("iron_backpack_from_iron", "minecraft:iron_ingot")
 
 # ---- the creative tab -----------------------------------------------------------------------
 # While the player wears a backpack, the code shows its rows in this tab's grid instead.

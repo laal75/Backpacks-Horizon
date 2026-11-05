@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "ISI",
+    "ICI",
+    "III"
+  ],
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "S": "minecraft:string",
+    "C": "minecraft:chest"
+  },
+  "result": {
+    "id": "horizon_backpacks:iron_backpack"
+  }
+}
