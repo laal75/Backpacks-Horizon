@@ -78,9 +78,11 @@ fn same_item(a: &ItemStack, b: &ItemStack) -> bool {
 /// What a click asks of the server: the message's first byte, then a slot.
 const PICK: u8 = 0;
 const PICK_RIGHT: u8 = 1;
-/// A backpack slot to the inventory.
+/// A backpack slot to the inventory: the hotbar first, then the main rows.
 const SHIFT_OUT: u8 = 2;
-/// An inventory slot (0..36, the hotbar first) to the backpack.
+/// A main inventory slot (9..36) to the backpack. The hotbar's shift-clicks stay the game's
+/// (to the main rows), so items go round: backpack → hotbar, hotbar → main rows, main rows →
+/// backpack.
 const SHIFT_IN: u8 = 3;
 /// The backpack's own slots sorted, as Horizon's sort orders a chest.
 const SORT: u8 = 4;
@@ -231,7 +233,9 @@ fn batch(game: &Game<'_>) -> Option<HudBatch> {
 }
 
 /// The mouse hook (click.rs): a press or release over the rows is the backpack's and the game
-/// never sees it; a shift-click on an inventory slot sends that stack into the backpack.
+/// never sees it; on the player's own inventory screen, a shift-click on a main inventory slot
+/// sends that stack into the backpack while it has room (when it hasn't, the game moves it to the
+/// hotbar as usual).
 pub(super) fn mouse(game: &mut Game<'_>, button: i32, pressed: bool, canceled: &mut bool) {
     let Some(batch) = batch(game) else {
         return;
@@ -259,8 +263,10 @@ pub(super) fn mouse(game: &mut Game<'_>, button: i32, pressed: bool, canceled: &
         if shift_in
             && own_inventory(game)
             && let Some(slot) = game.slot_at(&batch, x, y)
-            && slot < 36
-            && game.inventory[slot].as_ref().is_some_and(|s| !full_backpack(s))
+            && (9..36).contains(&slot)
+            && let Some(stack) = game.inventory[slot].as_ref()
+            && !full_backpack(stack)
+            && game.armor[CHEST].as_ref().is_some_and(|pack| has_room(game, pack, layout.slots, stack))
         {
             send(game, SHIFT_IN, slot);
             *canceled = true;
@@ -281,6 +287,16 @@ pub(super) fn mouse(game: &mut Game<'_>, button: i32, pressed: bool, canceled: &
         _ => return,
     };
     send(game, action, i);
+}
+
+/// Whether the worn backpack has room for some of `stack`: an empty slot, or an equal stack that
+/// isn't full.
+fn has_room(game: &Game<'_>, pack: &ItemStack, slots: usize, stack: &ItemStack) -> bool {
+    let max = Host::max_stack_size(game, &stack.item).unwrap_or(64);
+    contents(pack, slots).iter().any(|s| match s {
+        None => true,
+        Some(s) => same_item(s, stack) && s.count < max,
+    })
 }
 
 fn send(game: &mut Game<'_>, action: u8, slot: usize) {
@@ -415,10 +431,10 @@ fn apply(
         }
         SHIFT_OUT if slot < items.len() => {
             if let Some(stack) = items[slot].take() {
-                items[slot] = insert(inventory, stack, &max, (9..36).chain(0..9));
+                items[slot] = insert(inventory, stack, &max, (0..9).chain(9..36));
             }
         }
-        SHIFT_IN if slot < inventory.len() => {
+        SHIFT_IN if (9..36).contains(&slot) && slot < inventory.len() => {
             if let Some(stack) = inventory[slot].take() {
                 inventory[slot] = if full_backpack(&stack) {
                     Some(stack)

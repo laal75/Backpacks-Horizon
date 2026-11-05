@@ -5,6 +5,9 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 
 ## Unreleased
 
+- Shift-clicks go round as in vanilla: backpack → hotbar first, hotbar → main rows (the game's own),
+  main rows → backpack (to the hotbar instead when the backpack has no room).
+
 ### Changed
 - The mod is now called Backpacks (its ids are unchanged, so worlds keep their backpacks).
 
