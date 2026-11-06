@@ -6,6 +6,12 @@
     "horizon_backpacks:iron_backpack",
     "horizon_backpacks:gold_backpack",
     "horizon_backpacks:diamond_backpack",
-    "horizon_backpacks:obsidian_backpack"
+    "horizon_backpacks:obsidian_backpack",
+    "horizon_backpacks:ender_upgrade",
+    "horizon_backpacks:ender_leather_backpack",
+    "horizon_backpacks:ender_iron_backpack",
+    "horizon_backpacks:ender_gold_backpack",
+    "horizon_backpacks:ender_diamond_backpack",
+    "horizon_backpacks:ender_obsidian_backpack"
   ]
 }

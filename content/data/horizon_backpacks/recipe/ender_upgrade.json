@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " L ",
+    "LCL",
+    " L "
+  ],
+  "key": {
+    "L": "minecraft:leather",
+    "C": "minecraft:ender_chest"
+  },
+  "result": {
+    "id": "horizon_backpacks:ender_upgrade"
+  }
+}

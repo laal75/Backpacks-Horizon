@@ -4,7 +4,7 @@
 # `horizon-launcher native-build <this folder> --trust-native-code`.
 [mod]
 id = "horizon_backpacks_core"
-version = "0.1.2"
+version = "0.2.0"
 
 # The same Horizon as the other mods, so they build into one game.
 [compatibility]
@@ -51,6 +51,17 @@ helper = "tooltip.rs"
 bindings = [
     { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
     { name = "lines", ty = "&mut Vec<(horizon_client::text::Text, u32)>", value = "&mut *lines" },
+]
+
+# On the server: keeps a worn Ender Backpack's rows up to date with its owner's store.
+[[injection]]
+id = "tick"
+hook = "server_tick"
+hook_version = 1
+kind = "HEAD"
+helper = "tick.rs"
+bindings = [
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
 ]
 
 # On the server: a click on the rows, applied to the player's inventory, cursor and backpack.

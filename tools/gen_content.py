@@ -51,6 +51,16 @@ TIERS = {
     "diamond_backpack": ("Diamond Backpack", (92, 222, 214), 40),
     "obsidian_backpack": ("Obsidian Backpack", (60, 44, 88), 45),
 }
+# The Ender tiers: each tier's Ender version, by an Ender Upgrade on it. They open their owner's
+# store, so they hold more and native/glue.rs has the same slots.
+ENDER = {
+    "ender_leather_backpack": ("Ender Leather Backpack", "leather_backpack", 30),
+    "ender_iron_backpack": ("Ender Iron Backpack", "iron_backpack", 35),
+    "ender_gold_backpack": ("Ender Gold Backpack", "gold_backpack", 40),
+    "ender_diamond_backpack": ("Ender Diamond Backpack", "diamond_backpack", 45),
+    "ender_obsidian_backpack": ("Ender Obsidian Backpack", "obsidian_backpack", 50),
+}
+ENDER_TEAL = (24, 96, 86)
 # Each tier past leather: the one before it and this block, by crafting_transmute, which keeps
 # what the backpack holds (its custom data).
 UPGRADES = {
@@ -90,6 +100,23 @@ def backpack(colour, seed):
 
 for i, (name, (_, colour, _)) in enumerate(TIERS.items()):
     png(f"assets/{ID}/textures/item/{name}.png", backpack(colour, 10 + i))
+for i, (name, (_, base, _)) in enumerate(ENDER.items()):
+    # Dark teal over the tier's colour, with an ender eye for a buckle.
+    colour = tuple((a + 2 * b) // 3 for a, b in zip(TIERS[base][1], ENDER_TEAL))
+    px = backpack(colour, 30 + i)
+    px[9][7] = px[9][8] = (60, 220, 170, 255)
+    px[10][7] = px[10][8] = (30, 150, 120, 255)
+    png(f"assets/{ID}/textures/item/{name}.png", px)
+_px = [[(0, 0, 0, 0)] * 16 for _ in range(16)]
+for _y in range(3, 13):
+    for _x in range(3, 13):
+        _edge = _x in (3, 12) or _y in (3, 12)
+        _px[_y][_x] = shade(ENDER_TEAL, 0.7 if _edge else 1.0)
+for _y in range(6, 10):
+    for _x in range(6, 10):
+        _px[_y][_x] = (60, 220, 170, 255)
+_px[7][7] = _px[8][8] = (20, 60, 55, 255)
+png(f"assets/{ID}/textures/item/ender_upgrade.png", _px)
 
 # ---- manifest -------------------------------------------------------------------------------
 write("horizon-mod.toml", f'''id = "{ID}"
@@ -120,6 +147,24 @@ for name, (title, _, _) in TIERS.items():
           {"parent": "minecraft:item/generated", "textures": {"layer0": f"{ID}:item/{name}"}})
     write(f"assets/{ID}/items/{name}.json", {"model": {"type": "minecraft:model", "model": f"{ID}:item/{name}"}})
     lang[f"item.{ID}.{name}"] = title
+for name, (title, base, _) in ENDER.items():
+    components = {
+        "minecraft:equippable": {"slot": "chest", "equip_sound": "minecraft:item.armor.equip_leather"},
+    }
+    item = {"template": "minecraft:sugar", "max_stack_size": 1, "components": components, "rarity": "uncommon"}
+    if base == "obsidian_backpack":
+        components["minecraft:damage_resistant"] = {"types": f"#{ID}:backpack_proof"}
+        item["rarity"] = "rare"
+    write(f"data/{ID}/horizon/item/{name}.json", item)
+    write(f"assets/{ID}/models/item/{name}.json",
+          {"parent": "minecraft:item/generated", "textures": {"layer0": f"{ID}:item/{name}"}})
+    write(f"assets/{ID}/items/{name}.json", {"model": {"type": "minecraft:model", "model": f"{ID}:item/{name}"}})
+    lang[f"item.{ID}.{name}"] = title
+write(f"data/{ID}/horizon/item/ender_upgrade.json", {"template": "minecraft:sugar", "max_stack_size": 16})
+write(f"assets/{ID}/models/item/ender_upgrade.json",
+      {"parent": "minecraft:item/generated", "textures": {"layer0": f"{ID}:item/ender_upgrade"}})
+write(f"assets/{ID}/items/ender_upgrade.json", {"model": {"type": "minecraft:model", "model": f"{ID}:item/ender_upgrade"}})
+lang[f"item.{ID}.ender_upgrade"] = "Ender Upgrade"
 
 
 # ---- crafting and the recipe book -----------------------------------------------------------
@@ -160,6 +205,30 @@ write(f"data/{ID}/recipe/iron_backpack_from_iron.json", {
 })
 unlock("iron_backpack_from_iron", "minecraft:iron_ingot")
 
+# An ender chest and 4 leather make the upgrade, and the upgrade on any backpack makes it Ender.
+write(f"data/{ID}/recipe/ender_upgrade.json", {
+    "type": "minecraft:crafting_shaped", "category": "equipment",
+    "pattern": [" L ", "LCL", " L "],
+    "key": {"L": "minecraft:leather", "C": "minecraft:ender_chest"},
+    "result": {"id": f"{ID}:ender_upgrade"},
+})
+unlock("ender_upgrade", "minecraft:ender_chest")
+for name, (_, base, _) in ENDER.items():
+    write(f"data/{ID}/recipe/{name}.json", {
+        "type": "minecraft:crafting_transmute", "category": "equipment",
+        "input": f"{ID}:{base}", "material": f"{ID}:ender_upgrade",
+        "result": {"id": f"{ID}:{name}"},
+    })
+    unlock(name, f"{ID}:ender_upgrade")
+# Up the tiers as a plain backpack goes.
+for name, (before, material) in UPGRADES.items():
+    write(f"data/{ID}/recipe/ender_{name}_from_ender.json", {
+        "type": "minecraft:crafting_transmute", "category": "equipment",
+        "input": f"{ID}:ender_{before}", "material": material,
+        "result": {"id": f"{ID}:ender_{name}"},
+    })
+    unlock(f"ender_{name}_from_ender", f"{ID}:ender_{before}")
+
 # ---- the creative tab -----------------------------------------------------------------------
 # While the player wears a backpack, the code shows its rows in this tab's grid instead.
 lang[f"itemGroup.{ID}.backpacks"] = "Backpacks"
@@ -167,5 +236,5 @@ write(f"assets/{ID}/lang/en_us.json", lang)
 write(f"data/{ID}/horizon/creative_tab/backpacks.json", {
     "title": "Backpacks",
     "icon": f"{ID}:leather_backpack",
-    "items": [f"{ID}:{n}" for n in TIERS],
+    "items": [f"{ID}:{n}" for n in TIERS] + [f"{ID}:ender_upgrade"] + [f"{ID}:{n}" for n in ENDER],
 })

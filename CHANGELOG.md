@@ -5,6 +5,14 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 
 ## Unreleased
 
+## 0.2.0 - 2026-11-06
+
+- **Ender Backpacks**: 30, 35, 40, 45 and 50 slots, opening one store for each player, saved with the
+  world. Items stay in it through death, and each player sees their own. An **Ender Upgrade** (ender
+  chest and 4 leather) on any backpack makes its Ender version; what it held moves into the store.
+- On mod screens the inventory's sort button moved to the inventory's label row, so it no longer
+  overlaps the chest's own Sort button at the top right.
+
 ## 0.1.2 - 2026-11-05
 
 - On mod screens the inventory's sort button is at the top right of the screen, where it no longer

@@ -7,12 +7,20 @@
 // client draws the rows from its copy of the worn backpack (draw.rs) and turns a click on them
 // into a mod message (click.rs); the server, single player's integrated one included, applies it
 // to the player's inventory, cursor and backpack and sends the inventory back (net.rs).
-use horizon_client::containers::BlockEntity;
+//
+// An Ender Backpack holds nothing itself. Its rows are the player's own store, kept on the server
+// in the world's horizon_backpacks/ender folder, one file a player. So the client's drawing and
+// clicks work as for any backpack, the server copies what the rows show onto the worn item (tick.rs).
+// That copy is never read back: only the file counts, so a copied or dropped pack makes no items.
 use horizon_client::creative::Creative;
 use horizon_client::hud::{HudBatch, rgba};
 use horizon_client::items::ItemStack;
 use horizon_client::mod_api::Host;
-use horizon_world::nbt::Tag;
+use horizon_world::nbt::{Compound, JavaString, Limits, NamedTag, Tag};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
 
 use super::{Game, Screen};
 
@@ -28,18 +36,37 @@ const CHEST: usize = 1;
 
 /// Each backpack, its title and its slots, rows of 5 on the inventory screen
 /// (tools/gen_content.py has the same). 45 at most: the creative tab's 9 by 5 grid.
-const TIERS: [(&str, &str, usize); 5] = [
+const TIERS: [(&str, &str, usize); 10] = [
     ("horizon_backpacks:leather_backpack", "Leather Backpack", 10),
     ("horizon_backpacks:iron_backpack", "Iron Backpack", 20),
     ("horizon_backpacks:gold_backpack", "Gold Backpack", 30),
     ("horizon_backpacks:diamond_backpack", "Diamond Backpack", 40),
     ("horizon_backpacks:obsidian_backpack", "Obsidian Backpack", 45),
+    ("horizon_backpacks:ender_leather_backpack", "Ender Backpack", 30),
+    ("horizon_backpacks:ender_iron_backpack", "Ender Backpack", 35),
+    ("horizon_backpacks:ender_gold_backpack", "Ender Backpack", 40),
+    ("horizon_backpacks:ender_diamond_backpack", "Ender Backpack", 45),
+    ("horizon_backpacks:ender_obsidian_backpack", "Ender Backpack", 50),
 ];
+/// Every Ender Backpack's id starts so.
+const ENDER_PREFIX: &str = "horizon_backpacks:ender_";
+/// The slots of a player's store: the biggest Ender Backpack's. A smaller one shows the first few.
+const STORE_SLOTS: usize = 50;
+/// The custom data key that says which store and state an Ender Backpack's copy shows.
+const SEEN_KEY: &str = "ender_seen";
+/// What a backpack held when it became an Ender Backpack that its owner's store had no room for.
+const PENDING_KEY: &str = "ender_pending";
+/// What the creative tab's grid shows at most.
+const CREATIVE_SLOTS: usize = 45;
 /// Slots to a row on the inventory screen.
 const COLUMNS: usize = 5;
 /// How far a trader's screen reaches left of the inventory's origin: it is 276 wide, not 176
 /// (the game's `trading::SHIFT`).
 const TRADER_SHIFT: f32 = 50.0;
+
+fn is_ender(item: &str) -> bool {
+    item.starts_with(ENDER_PREFIX) && slots_of(item).is_some()
+}
 
 fn slots_of(item: &str) -> Option<usize> {
     TIERS.iter().find(|(id, ..)| *id == item).map(|&(.., slots)| slots)
@@ -58,18 +85,27 @@ fn contents(stack: &ItemStack, slots: usize) -> Vec<Option<ItemStack>> {
     horizon_client::save::decode_items(tag, slots)
 }
 
-fn store(stack: &mut ItemStack, items: &[Option<ItemStack>]) {
+/// Changes the item's custom data.
+fn edit(stack: &mut ItemStack, change: impl FnOnce(&mut Compound)) {
     let mut data = match stack.data().and_then(|d| d.other("minecraft:custom_data")) {
         Some(Tag::Compound(c)) => c.clone(),
-        _ => Default::default(),
+        _ => Compound::default(),
     };
-    data.insert(KEY.into(), horizon_client::save::encode_items(items));
+    change(&mut data);
     stack.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(data)));
 }
 
-/// A backpack that holds something, which never goes in another backpack (an empty one does).
+fn store(stack: &mut ItemStack, items: &[Option<ItemStack>]) {
+    edit(stack, |data| {
+        data.insert(KEY.into(), horizon_client::save::encode_items(items));
+    });
+}
+
+/// A backpack that holds something, which never goes in another backpack (an empty one does). An
+/// Ender Backpack holds nothing: its items are in its owner's store.
 fn full_backpack(stack: &ItemStack) -> bool {
-    slots_of(&stack.item).is_some_and(|slots| contents(stack, slots).iter().any(Option::is_some))
+    !is_ender(&stack.item)
+        && slots_of(&stack.item).is_some_and(|slots| contents(stack, slots).iter().any(Option::is_some))
 }
 
 fn same_item(a: &ItemStack, b: &ItemStack) -> bool {
@@ -161,6 +197,7 @@ fn layout(game: &Game<'_>, batch: &HudBatch) -> Option<Layout> {
     if game.creative_tab_open() && game.creative_screen.tab().id == TAB {
         let (ox, oy) = Game::creative_origin(batch);
         let (x, y) = Creative::tab_slot_position(Creative::DISPLAY)?;
+        let slots = slots.min(CREATIVE_SLOTS);
         return Some(Layout { slots, cols: 9, first: (ox + x, oy + y), panel: None });
     }
     None
@@ -173,30 +210,10 @@ enum Sorts {
     Backpack,
 }
 
-/// The open screen has a sort button of its own at its top right: an Expanded Chests chest's, or
-/// a Machine Tech machine's with a buffer (its sorting.rs).
-fn has_own_sort(game: &Game<'_>) -> bool {
-    let entity = game.container.and_then(|k| game.world.block_entities.get(&k));
-    matches!(entity, Some(BlockEntity::Mod(m)) if
-        (m.id.starts_with("horizon_chests:") && m.id.ends_with("_chest"))
-            || matches!(
-                m.id.as_str(),
-                "horizon_machines:quarry"
-                    | "horizon_machines:excavator"
-                    | "horizon_machines:tree_farm"
-                    | "horizon_machines:crop_harvester"
-                    | "horizon_machines:rancher"
-                    | "horizon_machines:item_collector"
-                    | "horizon_machines:block_breaker"
-                    | "horizon_machines:block_placer"
-                    | "horizon_machines:filler"
-            ))
-}
-
 /// The sort buttons this mod adds, by their top left corner, with the sort extra on: the
 /// backpack panel's own, and on a mod's screen (where Horizon's own sort buttons don't go) the
-/// main inventory's, at the screen's top right, clear of its slots; just left of the screen's own
-/// sort button when it has one.
+/// main inventory's, on the inventory's own label row at its right end, clear of the screen's own
+/// sort button, which stays at the top right of the main panel.
 fn sort_buttons(game: &Game<'_>, batch: &HudBatch) -> Vec<((f32, f32), Sorts)> {
     let mut buttons = Vec::new();
     if !game.settings.extras.sort || game.screen != Screen::Inventory {
@@ -205,12 +222,14 @@ fn sort_buttons(game: &Game<'_>, batch: &HudBatch) -> Vec<((f32, f32), Sorts)> {
     if let Some(Layout { panel: Some([px, py, w, _]), .. }) = layout(game, batch) {
         buttons.push(((px + w - SORT_BUTTON - 7.0, py + 5.0), Sorts::Backpack));
     }
-    if game.native_screen_slots().is_some() {
+    if game.native_screen_slots().is_some()
+        && let (Some(ix), Some(iy)) = (game.native_screen_inventory_x(), game.native_screen_inventory_y())
+    {
         let (ox, oy) = game.inventory_origin(batch);
-        let width = game.native_screen_width().unwrap_or(176.0);
-        let from_right = if has_own_sort(game) { 29.0 } else { SORT_BUTTON + 7.0 };
         let main: Vec<usize> = (9..36).collect();
-        buttons.push(((ox + width - from_right, oy + 5.0), Sorts::Slots(main)));
+        // The last slot's right edge, 8 columns of 18 and its 16 along.
+        let at = (ox + ix + 160.0 - SORT_BUTTON, oy + iy - SORT_BUTTON - 1.0);
+        buttons.push((at, Sorts::Slots(main)));
     }
     buttons
 }
@@ -403,6 +422,11 @@ pub(super) fn tooltip(stack: &ItemStack, lines: &mut Vec<(horizon_client::mod_ap
     let Some(slots) = slots_of(&stack.item) else {
         return;
     };
+    if is_ender(&stack.item) {
+        let line = format!("{slots} slots of your own Ender store");
+        lines.push((horizon_client::mod_api::Text::literal(line), rgba(170, 170, 170, 255)));
+        return;
+    }
     let used = contents(stack, slots).iter().flatten().count();
     let line = format!("{used} / {slots} slots used");
     lines.push((horizon_client::mod_api::Text::literal(line), rgba(170, 170, 170, 255)));
@@ -421,7 +445,7 @@ pub(super) fn net(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8])
     };
     if let Some(gi) = host.hub.guests.iter().position(|g| g.uuid == player) {
         let g = &mut host.hub.guests[gi];
-        let changed = apply(game, &mut g.inventory, &mut g.armor[CHEST], &mut g.carried, action, slot as usize);
+        let changed = apply(game, player, &mut g.inventory, &mut g.armor[CHEST], &mut g.carried, action, slot as usize);
         if changed {
             host.hub.send_inventory(gi);
             // With a chest's or a crafting table's menu open, the inventory menu's own update
@@ -439,6 +463,7 @@ pub(super) fn net(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8])
 /// `carried` cursor stack. True when anything changed.
 fn apply(
     game: &Game<'_>,
+    player: u128,
     inventory: &mut [Option<ItemStack>],
     chest: &mut Option<ItemStack>,
     carried: &mut Option<ItemStack>,
@@ -452,13 +477,19 @@ fn apply(
         return false;
     };
     let max = |s: &ItemStack| Host::max_stack_size(game, &s.item).unwrap_or(64);
-    let mut items = contents(pack, slots);
+    let ender = is_ender(&pack.item);
+    let world = Host::world_dir(game);
+    let mut items = match (ender, &world) {
+        (false, _) => contents(pack, slots),
+        (true, Some(world)) => with_store(world, player, |s| s.items.clone()),
+        (true, None) => return false,
+    };
     let before = (items.clone(), carried.clone(), inventory.to_vec());
     match action {
-        PICK | PICK_RIGHT if slot < items.len() => {
+        PICK | PICK_RIGHT if slot < slots => {
             click(&mut items[slot], carried, action == PICK_RIGHT, &max);
         }
-        SHIFT_OUT if slot < items.len() => {
+        SHIFT_OUT if slot < slots => {
             if let Some(stack) = items[slot].take() {
                 items[slot] = insert(inventory, stack, &max, (0..9).chain(9..36));
             }
@@ -478,8 +509,172 @@ fn apply(
     if (items.clone(), carried.clone(), inventory.to_vec()) == before {
         return false;
     }
-    store(pack, &items);
+    match (ender, &world) {
+        (true, Some(world)) => {
+            with_store(world, player, |s| s.set(world, player, items));
+            sync(game, world, player, pack);
+        }
+        _ => store(pack, &items),
+    }
     true
+}
+
+// ---- the server: Ender Backpacks -------------------------------------------------------------
+
+/// A player's Ender store, as its file holds it.
+struct EnderStore {
+    items: Vec<Option<ItemStack>>,
+    /// Changes with what it holds, to tell a worn backpack's copy is behind.
+    hash: u64,
+}
+
+impl EnderStore {
+    fn encoded(items: &[Option<ItemStack>]) -> Vec<u8> {
+        let root = NamedTag {
+            name: JavaString::from(""),
+            tag: Tag::compound([("Items", horizon_client::save::encode_items(items))]),
+        };
+        horizon_world::nbt::write_named(&root, Limits::saved()).unwrap_or_default()
+    }
+
+    fn hash_of(bytes: &[u8]) -> u64 {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    fn load(world: &PathBuf, player: u128) -> Self {
+        let path = store_path(world, player);
+        let mut items = vec![None; STORE_SLOTS];
+        if let Ok(bytes) = std::fs::read(&path) {
+            match horizon_world::nbt::read_named(&bytes, Limits::saved()) {
+                Ok((root, _)) => items = horizon_client::save::decode_items(root.tag.get("Items"), STORE_SLOTS),
+                Err(e) => {
+                    // Kept for a look, not written over.
+                    log::warn!("Backpacks: {}: {e:?}", path.display());
+                    let _ = std::fs::rename(&path, path.with_extension("bad"));
+                }
+            }
+        }
+        let hash = Self::hash_of(&Self::encoded(&items));
+        Self { items, hash }
+    }
+
+    /// Takes on `items` and writes them to its file.
+    fn set(&mut self, world: &PathBuf, player: u128, items: Vec<Option<ItemStack>>) {
+        let bytes = Self::encoded(&items);
+        self.hash = Self::hash_of(&bytes);
+        self.items = items;
+        let path = store_path(world, player);
+        let new = path.with_extension("new");
+        let written = path
+            .parent()
+            .map_or(Ok(()), std::fs::create_dir_all)
+            .and_then(|()| std::fs::write(&new, &bytes))
+            .and_then(|()| std::fs::rename(&new, &path));
+        if let Err(e) = written {
+            log::warn!("Backpacks: {}: {e}", path.display());
+        }
+    }
+}
+
+fn store_path(world: &PathBuf, player: u128) -> PathBuf {
+    world.join("horizon_backpacks").join("ender").join(format!("{player:032x}.dat"))
+}
+
+thread_local! {
+    /// The stores in use, by world and player. Only the server's thread reaches them.
+    static STORES: RefCell<HashMap<(PathBuf, u128), EnderStore>> = RefCell::new(HashMap::new());
+}
+
+fn with_store<R>(world: &PathBuf, player: u128, f: impl FnOnce(&mut EnderStore) -> R) -> R {
+    STORES.with(|stores| {
+        let mut stores = stores.borrow_mut();
+        let store = stores
+            .entry((world.clone(), player))
+            .or_insert_with(|| EnderStore::load(world, player));
+        f(store)
+    })
+}
+
+/// Brings a worn Ender Backpack up to date: what a backpack held when it became one moves into
+/// its owner's store (what doesn't fit waits on the item), and the item gets a copy of the rows
+/// it shows. True when the item changed.
+fn sync(game: &Game<'_>, world: &PathBuf, player: u128, pack: &mut ItemStack) -> bool {
+    let Some(slots) = slots_of(&pack.item) else {
+        return false;
+    };
+    let custom = pack.data().and_then(|d| d.other("minecraft:custom_data")).cloned();
+    let tag = |key: &str| custom.as_ref().and_then(|c| c.get(key));
+    let seen_now = match tag(SEEN_KEY) {
+        Some(Tag::String(s)) => Some(s.to_string_lossy().to_string()),
+        _ => None,
+    };
+    let mut changed = false;
+    // Never synced: it was a plain backpack, and what's under KEY is real.
+    let mut waiting = horizon_client::save::decode_items(tag(PENDING_KEY), STORE_SLOTS);
+    if seen_now.is_none() {
+        let held = horizon_client::save::decode_items(tag(KEY), STORE_SLOTS);
+        let mut free = waiting.iter().enumerate().filter(|(_, s)| s.is_none()).map(|(i, _)| i).collect::<Vec<_>>().into_iter();
+        for stack in held.into_iter().flatten() {
+            if let Some(i) = free.next() {
+                waiting[i] = Some(stack);
+            }
+        }
+        changed = true;
+    }
+    if waiting.iter().any(Option::is_some) {
+        let max = |s: &ItemStack| Host::max_stack_size(game, &s.item).unwrap_or(64);
+        let mut items = with_store(world, player, |s| s.items.clone());
+        let before = items.clone();
+        for stack in waiting.iter_mut() {
+            if let Some(s) = stack.take() {
+                *stack = insert(&mut items, s, &max, 0..STORE_SLOTS);
+            }
+        }
+        if items != before {
+            with_store(world, player, |s| s.set(world, player, items));
+            changed = true;
+        }
+    }
+    let (rows, hash) = with_store(world, player, |s| (s.items[..slots.min(STORE_SLOTS)].to_vec(), s.hash));
+    let seen = format!("{player:032x}:{hash:016x}:{slots}");
+    if !changed && seen_now.as_deref() == Some(seen.as_str()) {
+        return false;
+    }
+    edit(pack, |data| {
+        data.insert(KEY.into(), horizon_client::save::encode_items(&rows));
+        data.insert(SEEN_KEY.into(), Tag::String(seen.as_str().into()));
+        if waiting.iter().any(Option::is_some) {
+            data.insert(PENDING_KEY.into(), horizon_client::save::encode_items(&waiting));
+        } else {
+            data.remove(&JavaString::from(PENDING_KEY));
+        }
+    });
+    true
+}
+
+/// The server tick hook (tick.rs): keeps the Ender Backpacks being worn up to date.
+pub(super) fn tick(game: &mut Game<'_>) {
+    if !game.native_on(MOD) {
+        return;
+    }
+    let Some(world) = Host::world_dir(&*game) else {
+        return;
+    };
+    let Some(mut host) = game.lan.take() else {
+        return;
+    };
+    for gi in 0..host.hub.guests.len() {
+        let player = host.hub.guests[gi].uuid;
+        let Some(pack) = host.hub.guests[gi].armor[CHEST].as_mut() else {
+            continue;
+        };
+        if is_ender(&pack.item) && sync(game, &world, player, pack) {
+            host.hub.send_inventory(gi);
+        }
+    }
+    game.lan = Some(host);
 }
 
 /// The backpack's slots sorted: equal stacks merged, in the creative screen's order (the

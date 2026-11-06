@@ -13,6 +13,11 @@ items while you wear one. Everything is original: names, numbers, code and textu
 | Diamond Backpack | 40 (5 x 8) | A Gold Backpack and a diamond block |
 | Obsidian Backpack | 45 (5 x 9) | A Diamond Backpack and obsidian; fire, lava and explosions can't destroy it |
 
+**Ender Backpacks** (30, 35, 40, 45 and 50 slots) are like a bigger ender chest for each player: an
+Ender Upgrade (ender chest and 4 leather) on any backpack makes its Ender version, tier blocks upgrade
+it from there, and all of a player's open the one store, kept with the world. Items stay in the store
+through death, and what the old backpack held moves into it.
+
 The slots sit in rows of 5 beside the inventory; in the creative tab they fill its 9-wide grid.
 
 What a backpack holds stays in the backpack: take it off, drop it or upgrade it, and the items go
@@ -46,8 +51,8 @@ The ready-made packs are in the [`dist`](dist) folder, so there is nothing to cl
 
 | File | What it is | Where it goes in the game folder |
 |---|---|---|
-| [`horizon_backpacks-0.1.2.hmod`](dist/horizon_backpacks-0.1.2.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
-| [`horizon_backpacks_core-0.1.2.hnmod`](dist/horizon_backpacks_core-0.1.2.hnmod) | The code | `horizon-native-mods/` |
+| [`horizon_backpacks-0.2.0.hmod`](dist/horizon_backpacks-0.2.0.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
+| [`horizon_backpacks_core-0.2.0.hnmod`](dist/horizon_backpacks_core-0.2.0.hnmod) | The code | `horizon-native-mods/` |
 
 1. Download both files. The game folder of the main Horizon instance is `%APPDATA%\horizon` on
    Windows; `horizon-launcher instance list` shows your instances.
