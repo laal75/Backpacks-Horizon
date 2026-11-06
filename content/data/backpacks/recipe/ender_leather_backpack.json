@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_transmute",
+  "category": "equipment",
+  "input": "backpacks:leather_backpack",
+  "material": "backpacks:ender_upgrade",
+  "result": {
+    "id": "backpacks:ender_leather_backpack"
+  }
+}

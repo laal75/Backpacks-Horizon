@@ -1,4 +1,4 @@
-// Backpacks, inside the game (crate::game::horizon_backpacks): a backpack worn in the
+// Backpacks, inside the game (crate::game::backpacks): a backpack worn in the
 // chest slot adds rows of slots to the player's own inventory screen, beside it on the left, and
 // to the content mod's "Backpacks" creative tab, in place of its grid. The rows are the backpack
 // item's own: its custom data keeps them (`backpack_items`), so they go wherever it goes.
@@ -9,7 +9,7 @@
 // to the player's inventory, cursor and backpack and sends the inventory back (net.rs).
 //
 // An Ender Backpack holds nothing itself. Its rows are the player's own store, kept on the server
-// in the world's horizon_backpacks/ender folder, one file a player. So the client's drawing and
+// in the world's backpacks/ender folder, one file a player. So the client's drawing and
 // clicks work as for any backpack, the server copies what the rows show onto the worn item (tick.rs).
 // That copy is never read back: only the file counts, so a copied or dropped pack makes no items.
 use horizon_client::creative::Creative;
@@ -24,11 +24,11 @@ use std::path::PathBuf;
 
 use super::{Game, Screen};
 
-pub(super) const MOD: &str = "horizon_backpacks_core";
+pub(super) const MOD: &str = "backpacks_core";
 /// The mod message a click on the rows becomes.
-const CHANNEL: &str = "horizon_backpacks:click";
+const CHANNEL: &str = "backpacks:click";
 /// The content mod's creative tab.
-const TAB: &str = "horizon_backpacks:backpacks";
+const TAB: &str = "backpacks:backpacks";
 /// The custom data key the rows are kept under.
 const KEY: &str = "backpack_items";
 /// The armour slot a backpack is worn in: the chest (0 is the head).
@@ -37,19 +37,19 @@ const CHEST: usize = 1;
 /// Each backpack, its title and its slots, rows of 5 on the inventory screen
 /// (tools/gen_content.py has the same). 45 at most: the creative tab's 9 by 5 grid.
 const TIERS: [(&str, &str, usize); 10] = [
-    ("horizon_backpacks:leather_backpack", "Leather Backpack", 10),
-    ("horizon_backpacks:iron_backpack", "Iron Backpack", 20),
-    ("horizon_backpacks:gold_backpack", "Gold Backpack", 30),
-    ("horizon_backpacks:diamond_backpack", "Diamond Backpack", 40),
-    ("horizon_backpacks:obsidian_backpack", "Obsidian Backpack", 45),
-    ("horizon_backpacks:ender_leather_backpack", "Ender Backpack", 30),
-    ("horizon_backpacks:ender_iron_backpack", "Ender Backpack", 35),
-    ("horizon_backpacks:ender_gold_backpack", "Ender Backpack", 40),
-    ("horizon_backpacks:ender_diamond_backpack", "Ender Backpack", 45),
-    ("horizon_backpacks:ender_obsidian_backpack", "Ender Backpack", 50),
+    ("backpacks:leather_backpack", "Leather Backpack", 10),
+    ("backpacks:iron_backpack", "Iron Backpack", 20),
+    ("backpacks:gold_backpack", "Gold Backpack", 30),
+    ("backpacks:diamond_backpack", "Diamond Backpack", 40),
+    ("backpacks:obsidian_backpack", "Obsidian Backpack", 45),
+    ("backpacks:ender_leather_backpack", "Ender Backpack", 30),
+    ("backpacks:ender_iron_backpack", "Ender Backpack", 35),
+    ("backpacks:ender_gold_backpack", "Ender Backpack", 40),
+    ("backpacks:ender_diamond_backpack", "Ender Backpack", 45),
+    ("backpacks:ender_obsidian_backpack", "Ender Backpack", 50),
 ];
 /// Every Ender Backpack's id starts so.
-const ENDER_PREFIX: &str = "horizon_backpacks:ender_";
+const ENDER_PREFIX: &str = "backpacks:ender_";
 /// The slots of a player's store: the biggest Ender Backpack's. A smaller one shows the first few.
 const STORE_SLOTS: usize = 50;
 /// The custom data key that says which store and state an Ender Backpack's copy shows.
@@ -579,7 +579,7 @@ impl EnderStore {
 }
 
 fn store_path(world: &PathBuf, player: u128) -> PathBuf {
-    world.join("horizon_backpacks").join("ender").join(format!("{player:032x}.dat"))
+    world.join("backpacks").join("ender").join(format!("{player:032x}.dat"))
 }
 
 thread_local! {

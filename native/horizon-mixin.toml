@@ -3,18 +3,18 @@
 # `Game`'s, which only code inside the game reaches. Build with
 # `horizon-launcher native-build <this folder> --trust-native-code`.
 [mod]
-id = "horizon_backpacks_core"
-version = "0.2.0"
+id = "backpacks_core"
+version = "0.3.0"
 
 # The same Horizon as the other mods, so they build into one game.
 [compatibility]
 horizon_revision = "67dad0d1a5adca139b426c8114e74a33b376ba64"
 
-# The backpack's rows and clicks, a module of the game (crate::game::horizon_backpacks).
+# The backpack's rows and clicks, a module of the game (crate::game::backpacks).
 [[module]]
 file = "crates/horizon-client/src/game.rs"
 id = "glue"
-name = "horizon_backpacks"
+name = "backpacks"
 source = "glue.rs"
 
 # Clicks over the rows, and shift-clicks into the backpack, before the screen sees them.

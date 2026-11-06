@@ -1,0 +1,14 @@
+{
+  "item.backpacks.leather_backpack": "Leather Backpack",
+  "item.backpacks.iron_backpack": "Iron Backpack",
+  "item.backpacks.gold_backpack": "Gold Backpack",
+  "item.backpacks.diamond_backpack": "Diamond Backpack",
+  "item.backpacks.obsidian_backpack": "Obsidian Backpack",
+  "item.backpacks.ender_leather_backpack": "Ender Leather Backpack",
+  "item.backpacks.ender_iron_backpack": "Ender Iron Backpack",
+  "item.backpacks.ender_gold_backpack": "Ender Gold Backpack",
+  "item.backpacks.ender_diamond_backpack": "Ender Diamond Backpack",
+  "item.backpacks.ender_obsidian_backpack": "Ender Obsidian Backpack",
+  "item.backpacks.ender_upgrade": "Ender Upgrade",
+  "itemGroup.backpacks.backpacks": "Backpacks"
+}

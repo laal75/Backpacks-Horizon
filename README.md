@@ -51,8 +51,8 @@ The ready-made packs are in the [`dist`](dist) folder, so there is nothing to cl
 
 | File | What it is | Where it goes in the game folder |
 |---|---|---|
-| [`horizon_backpacks-0.2.0.hmod`](dist/horizon_backpacks-0.2.0.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
-| [`horizon_backpacks_core-0.2.0.hnmod`](dist/horizon_backpacks_core-0.2.0.hnmod) | The code | `horizon-native-mods/` |
+| [`backpacks-0.3.0.hmod`](dist/backpacks-0.3.0.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
+| [`backpacks_core-0.3.0.hnmod`](dist/backpacks_core-0.3.0.hnmod) | The code | `horizon-native-mods/` |
 
 1. Download both files. The game folder of the main Horizon instance is `%APPDATA%\horizon` on
    Windows; `horizon-launcher instance list` shows your instances.
@@ -60,8 +60,8 @@ The ready-made packs are in the [`dist`](dist) folder, so there is nothing to cl
 3. Turn both halves on in the game folder's `horizon-mods.txt`:
 
    ```text
-   mod.horizon_backpacks:true
-   mod.horizon_backpacks_core:true
+   mod.backpacks:true
+   mod.backpacks_core:true
    ```
 
 4. Build the code into the instance. This also rebuilds your other installed native mods, so they
@@ -81,9 +81,9 @@ The ready-made packs are in the [`dist`](dist) folder, so there is nothing to cl
 horizon-launcher native-build native --instance <instance> --trust-native-code
 ```
 
-Copy `content/` to the instance's `horizon-mods/horizon_backpacks/` (or put
-`horizon_backpacks-<version>.hmod` from `python tools/pack.py` there), and turn on both
-`mod.horizon_backpacks` and `mod.horizon_backpacks_core` in its `horizon-mods.txt`.
+Copy `content/` to the instance's `horizon-mods/backpacks/` (or put
+`backpacks-<version>.hmod` from `python tools/pack.py` there), and turn on both
+`mod.backpacks` and `mod.backpacks_core` in its `horizon-mods.txt`.
 
 The code builds on Horizon commit `67dad0d` (the 2026-11-04 Nightly), set in
 `native/horizon-mixin.toml`.

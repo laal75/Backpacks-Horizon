@@ -1,0 +1,17 @@
+{
+  "title": "Backpacks",
+  "icon": "backpacks:leather_backpack",
+  "items": [
+    "backpacks:leather_backpack",
+    "backpacks:iron_backpack",
+    "backpacks:gold_backpack",
+    "backpacks:diamond_backpack",
+    "backpacks:obsidian_backpack",
+    "backpacks:ender_upgrade",
+    "backpacks:ender_leather_backpack",
+    "backpacks:ender_iron_backpack",
+    "backpacks:ender_gold_backpack",
+    "backpacks:ender_diamond_backpack",
+    "backpacks:ender_obsidian_backpack"
+  ]
+}

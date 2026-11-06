@@ -1,9 +1,0 @@
-{
-  "type": "minecraft:crafting_transmute",
-  "category": "equipment",
-  "input": "horizon_backpacks:iron_backpack",
-  "material": "horizon_backpacks:ender_upgrade",
-  "result": {
-    "id": "horizon_backpacks:ender_iron_backpack"
-  }
-}

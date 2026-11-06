@@ -5,6 +5,11 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 
 ## Unreleased
 
+## 0.3.0 - 2026-11-06
+
+- **The mod's id is now `backpacks`**, and its items are `backpacks:...`. Worlds made with an older version
+  lose its items and Ender stores, so start a new world.
+
 ## 0.2.0 - 2026-11-06
 
 - **Ender Backpacks**: 30, 35, 40, 45 and 50 slots, opening one store for each player, saved with the

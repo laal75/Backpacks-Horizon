@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "horizon_backpacks:item/ender_leather_backpack"
-  }
-}

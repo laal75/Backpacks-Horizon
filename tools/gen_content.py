@@ -7,7 +7,7 @@ import sys
 import zlib
 
 ROOT = sys.argv[1]
-ID = "horizon_backpacks"
+ID = "backpacks"
 # The one place the version is set (tools/version.py keeps the rest in step).
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "VERSION"), encoding="utf-8") as f:
     VERSION = f.read().strip()
@@ -122,7 +122,7 @@ png(f"assets/{ID}/textures/item/ender_upgrade.png", _px)
 write("horizon-mod.toml", f'''id = "{ID}"
 name = "Backpacks"
 version = "{VERSION}"
-description = "Backpacks worn in the chest slot that add rows to the inventory. Content half; the code is horizon_backpacks_core."
+description = "Backpacks worn in the chest slot that add rows to the inventory. Content half; the code is backpacks_core."
 authors = []
 api = "0.2"
 side = "both"

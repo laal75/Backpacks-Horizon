@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_transmute",
+  "category": "equipment",
+  "input": "backpacks:ender_diamond_backpack",
+  "material": "minecraft:obsidian",
+  "result": {
+    "id": "backpacks:ender_obsidian_backpack"
+  }
+}

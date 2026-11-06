@@ -1,5 +1,5 @@
-"""Packs the mod into argv[1] (default dist/): horizon_backpacks-<version>.hmod (the content) and
-horizon_backpacks_core-<version>.hnmod (the native code), as docs/api/mod-files.md describes them.
+"""Packs the mod into argv[1] (default dist/): backpacks-<version>.hmod (the content) and
+backpacks_core-<version>.hnmod (the native code), as docs/api/mod-files.md describes them.
 Refuses when the files' versions disagree with VERSION (tools/version.py).
 The packs already there move first to past-backups/<their version>/<when they were made>/."""
 import json

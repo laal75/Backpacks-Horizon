@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_transmute",
+  "category": "equipment",
+  "input": "backpacks:ender_iron_backpack",
+  "material": "minecraft:gold_block",
+  "result": {
+    "id": "backpacks:ender_gold_backpack"
+  }
+}

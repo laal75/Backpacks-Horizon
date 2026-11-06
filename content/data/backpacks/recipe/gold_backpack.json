@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_transmute",
+  "category": "equipment",
+  "input": "backpacks:iron_backpack",
+  "material": "minecraft:gold_block",
+  "result": {
+    "id": "backpacks:gold_backpack"
+  }
+}

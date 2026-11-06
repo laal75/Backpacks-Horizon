@@ -1,9 +1,0 @@
-{
-  "type": "minecraft:crafting_transmute",
-  "category": "equipment",
-  "input": "horizon_backpacks:obsidian_backpack",
-  "material": "horizon_backpacks:ender_upgrade",
-  "result": {
-    "id": "horizon_backpacks:ender_obsidian_backpack"
-  }
-}
