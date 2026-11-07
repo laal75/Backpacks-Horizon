@@ -4,7 +4,7 @@
 # `horizon-launcher native-build <this folder> --trust-native-code`.
 [mod]
 id = "backpacks_core"
-version = "0.3.0"
+version = "0.4.0"
 
 # The same Horizon as the other mods, so they build into one game.
 [compatibility]
@@ -28,6 +28,19 @@ bindings = [
     { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
     { name = "button", ty = "i32", value = "button" },
     { name = "pressed", ty = "bool", value = "pressed" },
+    { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+# The wheel over the rows scrolls them, for a backpack with more than fit.
+[[injection]]
+id = "scroll"
+hook = "screen_mouse_scrolled_pre"
+hook_version = 1
+kind = "HEAD"
+helper = "scroll.rs"
+bindings = [
+    { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+    { name = "scroll", ty = "[f64; 2]", value = "scroll" },
     { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
 ]
 

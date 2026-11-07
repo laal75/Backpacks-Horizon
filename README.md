@@ -18,6 +18,7 @@ Ender Upgrade (ender chest and 4 leather) on any backpack makes its Ender versio
 it from there, and all of a player's open the one store, kept with the world. Items stay in the store
 through death, and what the old backpack held moves into it.
 
+Up to 8 rows show at once, as the Diamond Backpack's do; more scroll, by the bar or the mouse wheel.
 The slots sit in rows of 5 beside the inventory; in the creative tab they fill its 9-wide grid.
 
 What a backpack holds stays in the backpack: take it off, drop it or upgrade it, and the items go
@@ -51,8 +52,8 @@ The ready-made packs are in the [`dist`](dist) folder, so there is nothing to cl
 
 | File | What it is | Where it goes in the game folder |
 |---|---|---|
-| [`backpacks-0.3.0.hmod`](dist/backpacks-0.3.0.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
-| [`backpacks_core-0.3.0.hnmod`](dist/backpacks_core-0.3.0.hnmod) | The code | `horizon-native-mods/` |
+| [`backpacks-0.4.0.hmod`](dist/backpacks-0.4.0.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
+| [`backpacks_core-0.4.0.hnmod`](dist/backpacks_core-0.4.0.hnmod) | The code | `horizon-native-mods/` |
 
 1. Download both files. The game folder of the main Horizon instance is `%APPDATA%\horizon` on
    Windows; `horizon-launcher instance list` shows your instances.

@@ -5,6 +5,11 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 
 ## Unreleased
 
+## 0.4.0 - 2026-11-07
+
+- Backpacks with more than 8 rows, the Obsidian one and the two biggest Ender ones, are now as tall as the Diamond
+  Backpack, with a scroll bar. Drag it or use the mouse wheel over the panel.
+
 ## 0.3.0 - 2026-11-06
 
 - **The mod's id is now `backpacks`**, and its items are `backpacks:...`. Worlds made with an older version

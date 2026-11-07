@@ -21,6 +21,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use super::{Game, Screen};
 
@@ -60,6 +61,14 @@ const PENDING_KEY: &str = "ender_pending";
 const CREATIVE_SLOTS: usize = 45;
 /// Slots to a row on the inventory screen.
 const COLUMNS: usize = 5;
+/// Rows the inventory screen's panel shows, the Diamond Backpack's; more scroll.
+const MOST_ROWS: usize = 8;
+/// The width the scroll bar adds to the panel, and its own.
+const BAR_ROOM: f32 = 8.0;
+const BAR_WIDTH: f32 = 6.0;
+/// The first row shown, and whether the scroll bar is being dragged. Only the client's thread uses them.
+static TOP_ROW: AtomicUsize = AtomicUsize::new(0);
+static DRAGGING: AtomicBool = AtomicBool::new(false);
 /// How far a trader's screen reaches left of the inventory's origin: it is 276 wide, not 176
 /// (the game's `trading::SHIFT`).
 const TRADER_SHIFT: f32 = 50.0;
@@ -137,15 +146,38 @@ struct Layout {
     first: (f32, f32),
     /// The panel drawn around them, on the inventory screen (the creative tab has its own).
     panel: Option<[f32; 4]>,
+    /// The first row shown, and how many rows show.
+    top: usize,
+    shown: usize,
+    /// The scroll bar's track, when not all the rows fit.
+    bar: Option<[f32; 4]>,
 }
 
 impl Layout {
     fn slot(&self, i: usize) -> (f32, f32) {
-        (self.first.0 + (i % self.cols) as f32 * 18.0, self.first.1 + (i / self.cols) as f32 * 18.0)
+        let row = (i / self.cols) as f32 - self.top as f32;
+        (self.first.0 + (i % self.cols) as f32 * 18.0, self.first.1 + row * 18.0)
+    }
+
+    fn showing(&self, i: usize) -> bool {
+        (self.top..self.top + self.shown).contains(&(i / self.cols))
+    }
+
+    /// How many rows it can scroll past.
+    fn hidden_rows(&self) -> usize {
+        self.slots.div_ceil(self.cols).saturating_sub(self.shown)
+    }
+
+    /// Scrolls so the bar's thumb is at `y`.
+    fn drag_to(&self, y: f32) {
+        if let Some([_, top, _, h]) = self.bar {
+            let along = ((y - top) / h).clamp(0.0, 1.0);
+            TOP_ROW.store((along * self.hidden_rows() as f32).round() as usize, Ordering::Relaxed);
+        }
     }
 
     fn slot_at(&self, x: f32, y: f32) -> Option<usize> {
-        (0..self.slots).find(|&i| {
+        (0..self.slots).filter(|&i| self.showing(i)).find(|&i| {
             let (sx, sy) = self.slot(i);
             x >= sx - 1.0 && x < sx + 17.0 && y >= sy - 1.0 && y < sy + 17.0
         })
@@ -187,18 +219,23 @@ fn layout(game: &Game<'_>, batch: &HudBatch) -> Option<Layout> {
         // On the left, in full rows of 5: every tier's slots are a multiple of 5.
         let (ox, oy) = game.inventory_origin(batch);
         let rows = slots.div_ceil(COLUMNS);
-        let (w, h) = (COLUMNS as f32 * 18.0 + 14.0, 24.0 + rows as f32 * 18.0);
+        let shown = rows.min(MOST_ROWS);
+        let scrolls = rows > shown;
+        let top = TOP_ROW.load(Ordering::Relaxed).min(rows - shown);
+        let room = if scrolls { BAR_ROOM } else { 0.0 };
+        let (w, h) = (COLUMNS as f32 * 18.0 + 14.0 + room, 24.0 + shown as f32 * 18.0);
         let trader = game.station.as_ref().is_some_and(|s| s.merchant.is_some());
         let left = if trader { ox - TRADER_SHIFT } else { ox };
         let panel = [(left - w - 4.0).max(2.0), oy, w, h];
         let first = (panel[0] + 8.0, oy + 18.0);
-        return Some(Layout { slots, cols: COLUMNS, first, panel: Some(panel) });
+        let bar = scrolls.then(|| [first.0 + COLUMNS as f32 * 18.0 + 1.0, first.1 - 1.0, BAR_WIDTH, shown as f32 * 18.0]);
+        return Some(Layout { slots, cols: COLUMNS, first, panel: Some(panel), top, shown, bar });
     }
     if game.creative_tab_open() && game.creative_screen.tab().id == TAB {
         let (ox, oy) = Game::creative_origin(batch);
         let (x, y) = Creative::tab_slot_position(Creative::DISPLAY)?;
         let slots = slots.min(CREATIVE_SLOTS);
-        return Some(Layout { slots, cols: 9, first: (ox + x, oy + y), panel: None });
+        return Some(Layout { slots, cols: 9, first: (ox + x, oy + y), panel: None, top: 0, shown: slots.div_ceil(9), bar: None });
     }
     None
 }
@@ -275,6 +312,9 @@ pub(super) fn mouse(game: &mut Game<'_>, button: i32, pressed: bool, canceled: &
     if !game.native_on(MOD) {
         return;
     }
+    if !pressed {
+        DRAGGING.store(false, Ordering::Relaxed);
+    }
     let (x, y) = game.cursor;
     let hit = sort_buttons(game, &batch).into_iter().find(|(at, _)| on_button(*at, x, y));
     if let Some((_, sorts)) = hit {
@@ -309,6 +349,17 @@ pub(super) fn mouse(game: &mut Game<'_>, button: i32, pressed: bool, canceled: &
     if !pressed {
         return;
     }
+    if button == 0
+        && let Some([bx, by, bw, bh]) = layout.bar
+        && x >= bx
+        && x < bx + bw
+        && y >= by
+        && y < by + bh
+    {
+        DRAGGING.store(true, Ordering::Relaxed);
+        layout.drag_to(y);
+        return;
+    }
     let Some(i) = layout.slot_at(x, y) else {
         return;
     };
@@ -319,6 +370,28 @@ pub(super) fn mouse(game: &mut Game<'_>, button: i32, pressed: bool, canceled: &
         _ => return,
     };
     send(game, action, i);
+}
+
+/// The wheel hook (scroll.rs): over the panel, the wheel scrolls its rows.
+pub(super) fn scroll(game: &Game<'_>, amount: f64, canceled: &mut bool) {
+    if !game.native_on(MOD) {
+        return;
+    }
+    let Some(batch) = batch(game) else {
+        return;
+    };
+    let Some(layout) = layout(game, &batch) else {
+        return;
+    };
+    let (x, y) = game.cursor;
+    if layout.bar.is_none() || !layout.covers(x, y) {
+        return;
+    }
+    *canceled = true;
+    let top = if amount > 0.0 { layout.top.saturating_sub(1) } else { (layout.top + 1).min(layout.hidden_rows()) };
+    if amount != 0.0 {
+        TOP_ROW.store(top, Ordering::Relaxed);
+    }
 }
 
 /// Whether the worn backpack has room for some of `stack`: an empty slot, or an equal stack that
@@ -373,9 +446,13 @@ fn draw_sort_buttons(game: &Game<'_>, batch: &mut HudBatch) {
 }
 
 fn draw_rows(game: &Game<'_>, batch: &mut HudBatch) {
-    let Some(layout) = layout(game, batch) else {
+    let Some(mut layout) = layout(game, batch) else {
         return;
     };
+    if DRAGGING.load(Ordering::Relaxed) {
+        layout.drag_to(game.cursor.1);
+        layout.top = TOP_ROW.load(Ordering::Relaxed).min(layout.hidden_rows());
+    }
     let Some(pack) = game.armor[CHEST].as_ref() else {
         return;
     };
@@ -386,7 +463,15 @@ fn draw_rows(game: &Game<'_>, batch: &mut HudBatch) {
         batch.fill(atlas, px + 1.0, py + 1.0, w - 2.0, h - 2.0, rgba(198, 198, 198, 255));
         batch.text(atlas, title_of(&pack.item), px + 8.0, py + 6.0, rgba(64, 64, 64, 255), false);
     }
-    for i in 0..layout.slots {
+    if let Some([bx, by, bw, bh]) = layout.bar {
+        batch.fill(atlas, bx, by, bw, bh, rgba(55, 55, 55, 255));
+        let hidden = layout.hidden_rows().max(1) as f32;
+        let rows = (layout.shown as f32 + hidden).max(1.0);
+        let thumb = (bh * layout.shown as f32 / rows).max(8.0);
+        let at = by + (bh - thumb) * layout.top as f32 / hidden;
+        batch.fill(atlas, bx, at, bw, thumb, rgba(235, 235, 235, 255));
+    }
+    for i in (0..layout.slots).filter(|&i| layout.showing(i)) {
         let (x, y) = layout.slot(i);
         let (fx, fy) = (x - 1.0, y - 1.0);
         batch.fill(atlas, fx, fy, 18.0, 18.0, rgba(55, 55, 55, 255));
@@ -394,7 +479,7 @@ fn draw_rows(game: &Game<'_>, batch: &mut HudBatch) {
         batch.fill(atlas, fx + 1.0, fy + 1.0, 16.0, 16.0, rgba(139, 139, 139, 255));
     }
     for (i, stack) in items.iter().enumerate() {
-        if let Some(stack) = stack {
+        if let Some(stack) = stack.as_ref().filter(|_| layout.showing(i)) {
             let (x, y) = layout.slot(i);
             game.draw_item(batch, stack, x, y);
         }
