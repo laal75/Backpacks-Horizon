@@ -5,6 +5,10 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 
 ## Unreleased
 
+## 0.4.1 - 2026-11-09
+
+- Built for Horizon Nightly 2026-11-08 (fdc87ae): the code now pins that commit
+
 ## 0.4.0 - 2026-11-07
 
 - Backpacks with more than 8 rows, the Obsidian one and the two biggest Ender ones, are now as tall as the Diamond

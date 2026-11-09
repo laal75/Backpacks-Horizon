@@ -17,7 +17,7 @@ BACKUPS = os.path.join(MOD, "past-backups")
 
 GAME = "26.3"
 # The horizon-mixins commit the launcher built this Horizon with (native-mods.json's horizon_mixins).
-MIXINS = "e8cd0aa38cffef49cb2e088ef716baa107148c02"
+MIXINS = "5a64af938ec86b00d53d16a408aabc0038fb3e57"
 
 
 def files(root):

@@ -4,11 +4,11 @@
 # `horizon-launcher native-build <this folder> --trust-native-code`.
 [mod]
 id = "backpacks_core"
-version = "0.4.0"
+version = "0.4.1"
 
 # The same Horizon as the other mods, so they build into one game.
 [compatibility]
-horizon_revision = "67dad0d1a5adca139b426c8114e74a33b376ba64"
+horizon_revision = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
 
 # The backpack's rows and clicks, a module of the game (crate::game::backpacks).
 [[module]]

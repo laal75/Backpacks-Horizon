@@ -52,8 +52,8 @@ The ready-made packs are in the [`dist`](dist) folder, so there is nothing to cl
 
 | File | What it is | Where it goes in the game folder |
 |---|---|---|
-| [`backpacks-0.4.0.hmod`](dist/backpacks-0.4.0.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
-| [`backpacks_core-0.4.0.hnmod`](dist/backpacks_core-0.4.0.hnmod) | The code | `horizon-native-mods/` |
+| [`backpacks-0.4.1.hmod`](dist/backpacks-0.4.1.hmod) | The content: blocks, items, recipes, textures | `horizon-mods/` |
+| [`backpacks_core-0.4.1.hnmod`](dist/backpacks_core-0.4.1.hnmod) | The code | `horizon-native-mods/` |
 
 1. Download both files. The game folder of the main Horizon instance is `%APPDATA%\horizon` on
    Windows; `horizon-launcher instance list` shows your instances.
@@ -86,7 +86,7 @@ Copy `content/` to the instance's `horizon-mods/backpacks/` (or put
 `backpacks-<version>.hmod` from `python tools/pack.py` there), and turn on both
 `mod.backpacks` and `mod.backpacks_core` in its `horizon-mods.txt`.
 
-The code builds on Horizon commit `67dad0d` (the 2026-11-04 Nightly), set in
+The code builds on Horizon commit `fdc87ae` (the 2026-11-08 Nightly), set in
 `native/horizon-mixin.toml`.
 
 ## Development
