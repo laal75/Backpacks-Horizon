@@ -5,6 +5,10 @@ and each release is tagged `v<version>`. New entries go under **Unreleased**.
 
 ## Unreleased
 
+## 0.5.0 - 2026-11-10
+
+- A worn Machine Tech Backpack Jetpack is the backpack it carries: its rows show and work as that backpack's (an Ender one's store too), and its tooltip counts them
+
 ## 0.4.1 - 2026-11-09
 
 - Built for Horizon Nightly 2026-11-08 (fdc87ae): the code now pins that commit

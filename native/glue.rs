@@ -81,6 +81,23 @@ fn slots_of(item: &str) -> Option<usize> {
     TIERS.iter().find(|(id, ..)| *id == item).map(|&(.., slots)| slots)
 }
 
+/// The custom data key that names the backpack a Backpack Jetpack (Machine Tech) carries: worn, it is
+/// that backpack, its rows kept on it as on any backpack.
+const CARRIES_KEY: &str = "backpack";
+
+/// Which backpack a stack is: its own id, or the one it carries (a Backpack Jetpack's).
+fn kind_of(stack: &ItemStack) -> String {
+    if slots_of(&stack.item).is_none()
+        && let Some(Tag::String(id)) = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|c| c.get(CARRIES_KEY))
+    {
+        let id = id.to_string_lossy();
+        if slots_of(&id).is_some() {
+            return id;
+        }
+    }
+    stack.item.to_string()
+}
+
 fn title_of(item: &str) -> &'static str {
     TIERS.iter().find(|(id, ..)| *id == item).map_or("Backpack", |&(_, title, _)| title)
 }
@@ -113,8 +130,8 @@ fn store(stack: &mut ItemStack, items: &[Option<ItemStack>]) {
 /// A backpack that holds something, which never goes in another backpack (an empty one does). An
 /// Ender Backpack holds nothing: its items are in its owner's store.
 fn full_backpack(stack: &ItemStack) -> bool {
-    !is_ender(&stack.item)
-        && slots_of(&stack.item).is_some_and(|slots| contents(stack, slots).iter().any(Option::is_some))
+    !is_ender(&kind_of(stack))
+        && slots_of(&kind_of(stack)).is_some_and(|slots| contents(stack, slots).iter().any(Option::is_some))
 }
 
 fn same_item(a: &ItemStack, b: &ItemStack) -> bool {
@@ -210,7 +227,7 @@ fn layout(game: &Game<'_>, batch: &HudBatch) -> Option<Layout> {
     if !served(game) {
         return None;
     }
-    let slots = slots_of(&game.armor[CHEST].as_ref()?.item)?;
+    let slots = slots_of(&kind_of(game.armor[CHEST].as_ref()?))?;
     if game.screen == Screen::Inventory {
         // Hidden while the recipe book is open: it takes the same side.
         if game.recipe_book_shift(batch.width) > 0.0 {
@@ -461,7 +478,7 @@ fn draw_rows(game: &Game<'_>, batch: &mut HudBatch) {
     if let Some([px, py, w, h]) = layout.panel {
         batch.fill(atlas, px, py, w, h, rgba(0, 0, 0, 255));
         batch.fill(atlas, px + 1.0, py + 1.0, w - 2.0, h - 2.0, rgba(198, 198, 198, 255));
-        batch.text(atlas, title_of(&pack.item), px + 8.0, py + 6.0, rgba(64, 64, 64, 255), false);
+        batch.text(atlas, title_of(&kind_of(pack)), px + 8.0, py + 6.0, rgba(64, 64, 64, 255), false);
     }
     if let Some([bx, by, bw, bh]) = layout.bar {
         batch.fill(atlas, bx, by, bw, bh, rgba(55, 55, 55, 255));
@@ -504,10 +521,10 @@ fn draw_rows(game: &Game<'_>, batch: &mut HudBatch) {
 
 /// The tooltip hook (tooltip.rs): how full a backpack is.
 pub(super) fn tooltip(stack: &ItemStack, lines: &mut Vec<(horizon_client::mod_api::Text, u32)>) {
-    let Some(slots) = slots_of(&stack.item) else {
+    let Some(slots) = slots_of(&kind_of(stack)) else {
         return;
     };
-    if is_ender(&stack.item) {
+    if is_ender(&kind_of(stack)) {
         let line = format!("{slots} slots of your own Ender store");
         lines.push((horizon_client::mod_api::Text::literal(line), rgba(170, 170, 170, 255)));
         return;
@@ -558,11 +575,11 @@ fn apply(
     let Some(pack) = chest.as_mut() else {
         return false;
     };
-    let Some(slots) = slots_of(&pack.item) else {
+    let Some(slots) = slots_of(&kind_of(pack)) else {
         return false;
     };
     let max = |s: &ItemStack| Host::max_stack_size(game, &s.item).unwrap_or(64);
-    let ender = is_ender(&pack.item);
+    let ender = is_ender(&kind_of(pack));
     let world = Host::world_dir(game);
     let mut items = match (ender, &world) {
         (false, _) => contents(pack, slots),
@@ -686,7 +703,7 @@ fn with_store<R>(world: &PathBuf, player: u128, f: impl FnOnce(&mut EnderStore) 
 /// its owner's store (what doesn't fit waits on the item), and the item gets a copy of the rows
 /// it shows. True when the item changed.
 fn sync(game: &Game<'_>, world: &PathBuf, player: u128, pack: &mut ItemStack) -> bool {
-    let Some(slots) = slots_of(&pack.item) else {
+    let Some(slots) = slots_of(&kind_of(pack)) else {
         return false;
     };
     let custom = pack.data().and_then(|d| d.other("minecraft:custom_data")).cloned();
@@ -755,7 +772,7 @@ pub(super) fn tick(game: &mut Game<'_>) {
         let Some(pack) = host.hub.guests[gi].armor[CHEST].as_mut() else {
             continue;
         };
-        if is_ender(&pack.item) && sync(game, &world, player, pack) {
+        if is_ender(&kind_of(pack)) && sync(game, &world, player, pack) {
             host.hub.send_inventory(gi);
         }
     }
